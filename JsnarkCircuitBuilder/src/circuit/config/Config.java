@@ -37,4 +37,5 @@ public class Config {
 	public static boolean outputVerbose = properties.getProperty("OUTPUT_VERBOSE").equals("1");
 	public static boolean debugVerbose = properties.getProperty("DEBUG_VERBOSE").equals("1");
 
+	public static boolean printStackTraceAtWarnings = false;
 }

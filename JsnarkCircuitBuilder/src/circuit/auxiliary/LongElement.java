@@ -36,7 +36,9 @@ public class LongElement {
 
 	// Should be declared as final, but left non-final for testing purposes.
 	// Don't change in the middle of circuit generation.
-	public static int BITWIDTH_PER_CHUNK = 32;
+	// This represents the size of smaller chunks used to represent long
+	// elements
+	public static int CHUNK_BITWIDTH = 32;
 
 	public LongElement(Wire w, int currentBitwidth) {
 		array = new Wire[] { w };
@@ -47,31 +49,29 @@ public class LongElement {
 	}
 
 	public LongElement(WireArray bits) {
-		if (BITWIDTH_PER_CHUNK >= bits.size()) {
-			array = new Wire[] { bits.packAsBits(BITWIDTH_PER_CHUNK) };
+		if (CHUNK_BITWIDTH >= bits.size()) {
+			array = new Wire[] { bits.packAsBits(bits.size()) };
 			this.currentMaxValues = new BigInteger[] { Util
 					.computeMaxValue(bits.size()) };
 			this.currentBitwidth = new int[] { bits.size() };
 
 		} else {
-			BigInteger maxChunkVal = Util.computeMaxValue(BITWIDTH_PER_CHUNK);
+			BigInteger maxChunkVal = Util.computeMaxValue(CHUNK_BITWIDTH);
 			BigInteger maxLastChunkVal = maxChunkVal;
-			int size= bits.size();
-			if (size % BITWIDTH_PER_CHUNK != 0) {
+			int size = bits.size();
+			if (size % CHUNK_BITWIDTH != 0) {
 				bits = bits.adjustLength(size
-						+ (BITWIDTH_PER_CHUNK - size
-								% BITWIDTH_PER_CHUNK));
-				maxLastChunkVal = Util.computeMaxValue(size
-						% BITWIDTH_PER_CHUNK);
+						+ (CHUNK_BITWIDTH - size % CHUNK_BITWIDTH));
+				maxLastChunkVal = Util.computeMaxValue(size % CHUNK_BITWIDTH);
 			}
-			this.array = new Wire[bits.size() / BITWIDTH_PER_CHUNK];
+			this.array = new Wire[bits.size() / CHUNK_BITWIDTH];
 			this.currentMaxValues = new BigInteger[array.length];
 			this.currentBitwidth = new int[array.length];
 
 			for (int i = 0; i < this.array.length; i++) {
 				this.array[i] = new WireArray(Arrays.copyOfRange(
-						bits.asArray(), i * BITWIDTH_PER_CHUNK, (i + 1)
-								* BITWIDTH_PER_CHUNK)).packAsBits();
+						bits.asArray(), i * CHUNK_BITWIDTH, (i + 1)
+								* CHUNK_BITWIDTH)).packAsBits();
 				if (i == array.length - 1) {
 					this.currentMaxValues[i] = maxLastChunkVal;
 					this.currentBitwidth[i] = maxLastChunkVal.bitLength();
@@ -236,15 +236,14 @@ public class LongElement {
 			// implement the optimization
 
 			result = generator.createProverWitnessWireArray(length);
-			
+
 			// for safety
 			final Wire[] array1 = this.array;
 			final Wire[] array2 = o.array;
 			generator.specifyProverWitnessComputation(new Instruction() {
 				@Override
 				public void evaluate(CircuitEvaluator evaluator) {
-					BigInteger[] a = evaluator
-							.getWiresValues(array1);
+					BigInteger[] a = evaluator.getWiresValues(array1);
 					BigInteger[] b = evaluator.getWiresValues(array2);
 					BigInteger[] resultVals = multiplyPolys(a, b);
 					evaluator.setWireValue(result, resultVals);
@@ -315,121 +314,123 @@ public class LongElement {
 	public int getSize() {
 		return array.length;
 	}
-
-	public void align(int totalNumChunks) {
-
-		array = Arrays.copyOfRange(array, 0, totalNumChunks);
-		for (int i = 0; i < array.length; i++) {
-			if (array[i] == null) {
-				array[i] = generator.getZeroWire();
+	
+	public LongElement align(int totalNumChunks) {
+		
+		Wire[] newArray = Arrays.copyOfRange(array, 0, totalNumChunks);
+		for(int i = 0; i < newArray.length; i++){
+			if(newArray[i] == null){
+				newArray[i]= generator.getZeroWire();
 			}
 		}
-
 		BigInteger[] newMaxValues = new BigInteger[totalNumChunks];
-		System.arraycopy(currentMaxValues, 0, newMaxValues, 0, totalNumChunks);
-
+		Arrays.fill(newMaxValues, BigInteger.ZERO);
+		System.arraycopy(currentMaxValues, 0, newMaxValues, 0, Math.min(totalNumChunks, currentMaxValues.length));
+		BigInteger maxAlignedChunkValue = Util.computeMaxValue(CHUNK_BITWIDTH);
+		
 		for (int i = 0; i < totalNumChunks; i++) {
-			if (newMaxValues[i].bitLength() > BITWIDTH_PER_CHUNK) {
-				Wire[] chunkBits = array[i].getBitWires(currentBitwidth[i])
+			if (newMaxValues[i].bitLength() > CHUNK_BITWIDTH) {
+				Wire[] chunkBits = newArray[i].getBitWires(newMaxValues[i].bitLength())
 						.asArray();
-				array[i] = new WireArray(Arrays.copyOfRange(chunkBits, 0,
-						BITWIDTH_PER_CHUNK)).packAsBits();
+				newArray[i] = new WireArray(Arrays.copyOfRange(chunkBits, 0,
+						CHUNK_BITWIDTH)).packAsBits();
 				Wire rem = new WireArray(Arrays.copyOfRange(chunkBits,
-						BITWIDTH_PER_CHUNK, currentBitwidth[i])).packAsBits();
+						CHUNK_BITWIDTH, newMaxValues[i].bitLength())).packAsBits();
 				if (i != totalNumChunks - 1) {
 					newMaxValues[i + 1] = newMaxValues[i].shiftRight(
-							BITWIDTH_PER_CHUNK).add(newMaxValues[i + 1]);
-					array[i + 1] = rem.add(array[i + 1]);
+							CHUNK_BITWIDTH).add(newMaxValues[i + 1]);
+					newArray[i + 1] = rem.add(newArray[i + 1]);
 				}
-				newMaxValues[i] = Util.computeMaxValue(BITWIDTH_PER_CHUNK);
-				currentBitwidth[i] = BITWIDTH_PER_CHUNK;
+				newMaxValues[i] = maxAlignedChunkValue;
 			}
 		}
-		currentMaxValues = newMaxValues;
+		return new LongElement(newArray, newMaxValues);
 	}
 
+
+	// This method extracts (some of) the bit wires corresponding to a long
+	// element based on the totalBitwidth argument.
+	// If totalBitwidth is -1, all bits are returned.
+	// See restrictBitwidth for restricting the bitwidth of all the long element
+	// chunks
+
 	public WireArray getBits(int totalBitwidth) {
+
 		if (bits != null) {
-			return bits.adjustLength(totalBitwidth);
-		} else if (totalBitwidth == BITWIDTH_PER_CHUNK) {
-			if (array.length == 1) {
-				System.out.println("bit length at split = "
-						+ currentMaxValues[0].bitLength());
-				bits = array[0].getBitWires(currentMaxValues[0].bitLength());
-				bits = bits.adjustLength(totalBitwidth);
-			} else {
-				// TODO : pack in this special case
-				// System.exit(0);
-				// System.out.println(array.length);
-				// System.exit(-1);
-				return null;
-			}
-		} else {
-			Wire[] bitWires;
-			int limit = totalBitwidth;
-			if (totalBitwidth != -1) {
-				bitWires = new Wire[totalBitwidth];
-
-			} else {
-				BigInteger maxVal = getMaxVal(BITWIDTH_PER_CHUNK);
-				bitWires = new Wire[maxVal.bitLength()];
-				limit = maxVal.bitLength();
-			}
-			Arrays.fill(bitWires, generator.getZeroWire());
-
-			int newLength = (int) Math.ceil(getMaxVal(BITWIDTH_PER_CHUNK)
-					.bitLength() * 1.0 / BITWIDTH_PER_CHUNK);
-			// Wire[] newArray = new Wire[array.length];
-			// BigInteger[] newMaxValues = new
-			// BigInteger[currentMaxValues.length];
-			// System.out.println("new Length = " + newLength);
-			Wire[] newArray = new Wire[newLength];
-			BigInteger[] newMaxValues = new BigInteger[newLength];
-			Arrays.fill(newMaxValues, BigInteger.ZERO);
-			Arrays.fill(newArray, generator.getZeroWire());
-
-			System.arraycopy(currentMaxValues, 0, newMaxValues, 0,
-					currentMaxValues.length);
-			System.arraycopy(array, 0, newArray, 0, array.length);
-
-			int idx = 0;
-			int chunkIndex = 0;
-			while (idx < limit && chunkIndex < newLength) {
-				Wire[] alignedChunkBits;
-				if (newMaxValues[chunkIndex].bitLength() > BITWIDTH_PER_CHUNK) {
-
-					Wire[] chunkBits = newArray[chunkIndex].getBitWires(
-							newMaxValues[chunkIndex].bitLength()).asArray();
-
-					alignedChunkBits = Arrays.copyOfRange(chunkBits, 0,
-							BITWIDTH_PER_CHUNK);
-					Wire rem = new WireArray(Arrays.copyOfRange(chunkBits,
-							BITWIDTH_PER_CHUNK,
-							newMaxValues[chunkIndex].bitLength())).packAsBits();
-
-					if (chunkIndex != newArray.length - 1) {
-						newMaxValues[chunkIndex + 1] = newMaxValues[chunkIndex]
-								.shiftRight(BITWIDTH_PER_CHUNK).add(
-										newMaxValues[chunkIndex + 1]);
-
-						newArray[chunkIndex + 1] = rem
-								.add(newArray[chunkIndex + 1]);
-
-					}
-				} else {
-					alignedChunkBits = newArray[chunkIndex].getBitWires(
-							newMaxValues[chunkIndex].bitLength()).asArray();
-				}
-				System.arraycopy(alignedChunkBits, 0, bitWires, idx,
-						Math.min(alignedChunkBits.length, limit - idx));
-				chunkIndex++;
-				idx += alignedChunkBits.length;
-			}
-
-			bits = new WireArray(bitWires);
-			// generator.addDebugInstruction(bits.array, "aligned Bits");
+			return bits.adjustLength(totalBitwidth == -1? bits.size():totalBitwidth);
 		}
-		return bits;
+		if (array.length == 1) {
+			bits = array[0].getBitWires(currentMaxValues[0].bitLength());
+			return bits.adjustLength(totalBitwidth == -1? bits.size():totalBitwidth);
+		} else {
+			if (totalBitwidth <= CHUNK_BITWIDTH && totalBitwidth >= 0) {
+				WireArray out = array[0].getBitWires(currentMaxValues[0]
+						.bitLength());
+				return out.adjustLength(totalBitwidth);
+			} else {
+				Wire[] bitWires;
+				int limit = totalBitwidth;
+				BigInteger maxVal = getMaxVal(CHUNK_BITWIDTH);
+
+				if (totalBitwidth != -1) {
+					bitWires = new Wire[totalBitwidth];
+				} else {
+					bitWires = new Wire[maxVal.bitLength()];
+					limit = maxVal.bitLength();
+				}
+				Arrays.fill(bitWires, generator.getZeroWire());
+
+				int newLength = (int) Math.ceil(getMaxVal(CHUNK_BITWIDTH)
+						.bitLength() * 1.0 / CHUNK_BITWIDTH);
+				Wire[] newArray = new Wire[newLength];
+				BigInteger[] newMaxValues = new BigInteger[newLength];
+				Arrays.fill(newMaxValues, BigInteger.ZERO);
+				Arrays.fill(newArray, generator.getZeroWire());
+
+				System.arraycopy(currentMaxValues, 0, newMaxValues, 0,
+						currentMaxValues.length);
+				System.arraycopy(array, 0, newArray, 0, array.length);
+				int idx = 0;
+				int chunkIndex = 0;
+				while (idx < limit && chunkIndex < newLength) {
+					Wire[] alignedChunkBits;
+					if (newMaxValues[chunkIndex].bitLength() > CHUNK_BITWIDTH) {
+
+						Wire[] chunkBits = newArray[chunkIndex].getBitWires(
+								newMaxValues[chunkIndex].bitLength()).asArray();
+
+						alignedChunkBits = Arrays.copyOfRange(chunkBits, 0,
+								CHUNK_BITWIDTH);
+						Wire rem = new WireArray(Arrays.copyOfRange(chunkBits,
+								CHUNK_BITWIDTH,
+								newMaxValues[chunkIndex].bitLength()))
+								.packAsBits();
+
+						if (chunkIndex != newArray.length - 1) {
+							newMaxValues[chunkIndex + 1] = newMaxValues[chunkIndex]
+									.shiftRight(CHUNK_BITWIDTH).add(
+											newMaxValues[chunkIndex + 1]);
+							newArray[chunkIndex + 1] = rem
+									.add(newArray[chunkIndex + 1]);
+						}
+					} else {
+						alignedChunkBits = newArray[chunkIndex].getBitWires(
+								CHUNK_BITWIDTH).asArray();
+					}
+					System.arraycopy(alignedChunkBits, 0, bitWires, idx,
+							Math.min(alignedChunkBits.length, limit - idx));
+					chunkIndex++;
+					idx += alignedChunkBits.length;
+				}
+				WireArray out = new WireArray(bitWires);
+				if(limit >= maxVal.bitLength()){
+					bits = out.adjustLength(maxVal.bitLength());
+				} 
+				return out;
+			}
+
+		}
+
 	}
 
 	public BigInteger getMaxVal(int bitwidth) {
@@ -468,6 +469,9 @@ public class LongElement {
 			Wire w2 = i < other.array.length ? other.array[i] : generator
 					.getZeroWire();
 			newArray[i] = w1.add(w.mul(w2.sub(w1)));
+			if (newArray[i] instanceof ConstantWire) {
+				newMaxValues[i] = ((ConstantWire) newArray[i]).getConstant();
+			}
 
 		}
 		return new LongElement(newArray, newMaxValues);
@@ -490,11 +494,15 @@ public class LongElement {
 	}
 
 	public BigInteger getConstant(int bitwidth_per_chunk) {
-		for (Wire w : array) {
-			if (!(w instanceof ConstantWire))
+		BigInteger[] constants = new BigInteger[array.length];
+		for (int i = 0; i < array.length; i++) {
+			if (!(array[i] instanceof ConstantWire))
 				return null;
+			else {
+				constants[i] = ((ConstantWire) array[i]).getConstant();
+			}
 		}
-		return Util.group(currentMaxValues, bitwidth_per_chunk);
+		return Util.group(constants, bitwidth_per_chunk);
 	}
 
 	// the equals java method to compare objects (this is NOT for circuit
@@ -517,34 +525,14 @@ public class LongElement {
 		return check;
 	}
 
-
-//	public LongElement addsub(BigInteger[] a, LongElement o) {
-//
-//		int length = Math.max(array.length, Math.max(a.length, o.array.length));
-//
-//		Wire[] w1 = new WireArray(array).adjustLength(length).asArray();
-//		Wire[] w2 = new WireArray(o.array).adjustLength(length).asArray();
-//
-//		Wire[] result = new Wire[length];
-//		BigInteger[] newMaxValues = new BigInteger[length];
-//		for (int i = 0; i < length; i++) {
-//			result[i] = w1[i].sub(w2[i]);
-//			if (i < a.length) {
-//				result[i] = result[i].add(a[i]);
-//			}
-//			BigInteger max1 = i < array.length ? currentMaxValues[i]
-//					: BigInteger.ZERO;
-//			BigInteger max2 = i < a.length ? a[i] : BigInteger.ZERO;
-//
-//			newMaxValues[i] = max1.add(max2);
-//		}
-//		return new LongElement(result, newMaxValues);
-//	}
-
 	// This asserts that the current bitwidth conditions are satisfied
-	public void forceBitwidth() {
-		if(!isAligned()){
-			System.err.println("Warning [forceBitwidth()]: Might want to align before checking bitwidth constraints");
+	public void restrictBitwidth() {
+		if (!isAligned()) {
+			System.err
+					.println("Warning [restrictBitwidth()]: Might want to align before checking bitwidth constraints");
+			if (Config.printStackTraceAtWarnings) {
+				Thread.dumpStack();
+			}
 		}
 		for (int i = 0; i < array.length; i++) {
 			array[i].restrictBitLength(currentBitwidth[i]);
@@ -554,43 +542,33 @@ public class LongElement {
 	public boolean isAligned() {
 		boolean check = true;
 		for (int i = 0; i < array.length; i++) {
-			check &= currentBitwidth[i] <= BITWIDTH_PER_CHUNK;
+			check &= currentBitwidth[i] <= CHUNK_BITWIDTH;
 		}
 		return check;
 	}
 
 	public void assertEqualityNaive(LongElement a) {
 
-		// generator.addDebugInstruction(a.array, "1 - before packing");
-		// generator.addDebugInstruction(array, "2 - before packing");
-		WireArray bits1 = a
-				.getBits(a.getMaxVal(BITWIDTH_PER_CHUNK).bitLength());
-		WireArray bits2 = getBits(getMaxVal(BITWIDTH_PER_CHUNK).bitLength());
+		WireArray bits1 = a.getBits(a.getMaxVal(CHUNK_BITWIDTH).bitLength());
+		WireArray bits2 = getBits(getMaxVal(CHUNK_BITWIDTH).bitLength());
 		LongElement v1 = new LongElement(bits1);
 		LongElement v2 = new LongElement(bits2);
 		for (int i = 0; i < v1.array.length; i++) {
 			generator.addEqualityAssertion(v1.array[i], v2.array[i]);
-
 		}
 	}
 
-	
-	// an improved equality checking algorithm from xjsnark
+	// an improved equality assertion algorithm from xjsnark
 	public void assertEquality(LongElement e) {
 
-		ArrayList<Wire> group1 = new ArrayList<Wire>();
-		ArrayList<BigInteger> group1_bound = new ArrayList<BigInteger>();
-		ArrayList<Wire> group2 = new ArrayList<Wire>();
-		ArrayList<BigInteger> group2_bound = new ArrayList<BigInteger>();
-		ArrayList<Integer> steps = new ArrayList<Integer>();
-		
 		Wire[] a1 = array;
 		Wire[] a2 = e.array;
-
 		BigInteger[] bounds1 = currentMaxValues;
 		BigInteger[] bounds2 = e.currentMaxValues;
 
 		int limit = Math.max(a1.length, a2.length);
+
+		// padding
 		if (e.array.length != limit) {
 			a2 = new WireArray(a2).adjustLength(limit).asArray();
 			bounds2 = new BigInteger[limit];
@@ -620,7 +598,21 @@ public class LongElement {
 			return;
 		}
 
-		BigInteger shift = new BigInteger("2").pow(BITWIDTH_PER_CHUNK);
+		// To make the equality check more efficient, group the chunks together
+		// while ensuring that there are no overflows.
+
+		ArrayList<Wire> group1 = new ArrayList<Wire>();
+		ArrayList<BigInteger> group1_bounds = new ArrayList<BigInteger>();
+		ArrayList<Wire> group2 = new ArrayList<Wire>();
+		ArrayList<BigInteger> group2_bounds = new ArrayList<BigInteger>();
+
+		// This array will store how many chunks were grouped together for every
+		// wire in group1 or group2
+		// The grouping needs to happen in the same way for the two operands, so
+		// it's one steps array
+		ArrayList<Integer> steps = new ArrayList<Integer>();
+
+		BigInteger shift = new BigInteger("2").pow(CHUNK_BITWIDTH);
 		int i = 0;
 		while (i < limit) {
 			int step = 1;
@@ -628,8 +620,6 @@ public class LongElement {
 			Wire w2 = a2[i];
 			BigInteger b1 = bounds1[i];
 			BigInteger b2 = bounds2[i];
-			// System.out.println(b1);
-			// System.out.println(b2);
 			while (i + step <= limit - 1) {
 				BigInteger delta = shift.pow(step);
 				if (b1.add(bounds1[i + step].multiply(delta)).bitLength() < Config.LOG2_FIELD_PRIME - 2
@@ -645,66 +635,87 @@ public class LongElement {
 				}
 			}
 			group1.add(w1);
-			group1_bound.add(b1);
+			group1_bounds.add(b1);
 			group2.add(w2);
-			group2_bound.add(b2);
-			// System.out.println("Step = " + step);
+			group2_bounds.add(b2);
 			steps.add(step);
 			i += step;
 		}
 
-		int newChunkSize = group1.size();
-		Wire[] carries = generator
-				.createProverWitnessWireArray(newChunkSize - 1);
-		BigInteger[] auxConstantChunks = new BigInteger[newChunkSize];
-		BigInteger auxConstant = BigInteger.ZERO;
+		int numOfGroupedChunks = group1.size();
 
-		int accumStep = 0;
+		// After grouping, subtraction will be needed to compare the grouped
+		// chunks and propagate carries.
+		// To avoid dealing with cases where the first operand in the
+		// subtraction is less than the second operand,
+		// we introduce an auxiliary constant computed based on the bounds of
+		// the second operand. The chunks
+		// of this auxConstant will be added to the chunks of the first operand
+		// before subtraction.
+
+		BigInteger auxConstant = BigInteger.ZERO;
+		BigInteger[] auxConstantChunks = new BigInteger[numOfGroupedChunks];
+
+		Wire[] carries = generator
+				.createProverWitnessWireArray(numOfGroupedChunks - 1);
 		int[] carriesBitwidthBounds = new int[carries.length];
+
+		// computing the auxConstantChunks, and the total auxConstant
+		int accumStep = 0;
 		for (int j = 0; j < auxConstantChunks.length - 1; j++) {
-			auxConstantChunks[j] = new BigInteger("2").pow(group2_bound.get(j)
-					.bitLength());
+			auxConstantChunks[j] = BigInteger.valueOf(2).pow(
+					group2_bounds.get(j).bitLength());
 			auxConstant = auxConstant.add(auxConstantChunks[j].multiply(shift
 					.pow(accumStep)));
 			accumStep += steps.get(j);
-			// System.out.println(steps.get(j) + "," +
-			// auxConstantChunks[j].bitLength());
-			// carriesBitBounds[j] = auxConstantChunks[j].bitLength() -
-			// steps.get(j)*BITWIDTH_PER_CHUNK + 1;
 			carriesBitwidthBounds[j] = Math.max(auxConstantChunks[j]
-					.bitLength(), group1_bound.get(j).bitLength())
-					- steps.get(j) * BITWIDTH_PER_CHUNK + 1;
+					.bitLength(), group1_bounds.get(j).bitLength())
+					- steps.get(j) * CHUNK_BITWIDTH + 1;
 		}
+
+		// since the two elements should be equal, we should not need any aux
+		// chunk in the last step
 		auxConstantChunks[auxConstantChunks.length - 1] = BigInteger.ZERO;
 
-		BigInteger[] alignedCoeffs = new BigInteger[newChunkSize];
-		Arrays.fill(alignedCoeffs, BigInteger.ZERO);
-		BigInteger[] smallerAlignedCoeffs = Util.split(auxConstant,
-				BITWIDTH_PER_CHUNK);
-		int idx = 0;
+		// Note: the previous auxConstantChunks are not aligned. We compute an
+		// aligned version as follows.
 
-		loop1: for (int j = 0; j < newChunkSize; j++) {
+		// First split the aux constant into small chunks based on
+		// CHUNK_BITWIDTH
+		BigInteger[] alignedAuxConstantSmallChunks = Util.split(auxConstant,
+				CHUNK_BITWIDTH);
+
+		// second, group the small aux chunks based on the steps array computed
+		// earlier to get the alignedAuxConstantChunks
+		// alignedAuxConstantChunks is the grouped version of
+		// alignedAuxConstantSmallChunks
+
+		BigInteger[] alignedAuxConstantChunks = new BigInteger[numOfGroupedChunks];
+		Arrays.fill(alignedAuxConstantChunks, BigInteger.ZERO);
+
+		int idx = 0;
+		loop1: for (int j = 0; j < numOfGroupedChunks; j++) {
 			for (int k = 0; k < steps.get(j); k++) {
-				alignedCoeffs[j] = alignedCoeffs[j]
-						.add(smallerAlignedCoeffs[idx].multiply(shift.pow(k)));
+				alignedAuxConstantChunks[j] = alignedAuxConstantChunks[j]
+						.add(alignedAuxConstantSmallChunks[idx].multiply(shift
+								.pow(k)));
 				idx++;
-				if (idx == smallerAlignedCoeffs.length) {
+				if (idx == alignedAuxConstantSmallChunks.length) {
 					break loop1;
 				}
 			}
 		}
-		if (idx != smallerAlignedCoeffs.length) {
-			if (idx == smallerAlignedCoeffs.length - 1) {
-				alignedCoeffs[newChunkSize - 1] = alignedCoeffs[newChunkSize - 1]
-						.add(smallerAlignedCoeffs[idx].multiply(shift.pow(steps
-								.get(newChunkSize - 1) + 0)));
+		if (idx != alignedAuxConstantSmallChunks.length) {
+			if (idx == alignedAuxConstantSmallChunks.length - 1) {
+				alignedAuxConstantChunks[numOfGroupedChunks - 1] = alignedAuxConstantChunks[numOfGroupedChunks - 1]
+						.add(alignedAuxConstantSmallChunks[idx].multiply(shift
+								.pow(steps.get(numOfGroupedChunks - 1))));
 			} else {
-				throw new RuntimeException(
-						"Case not expected. Investigate why!");
+				throw new RuntimeException("Case not expected. Please report.");
 			}
-
 		}
 
+		// specify how the values of carries are obtained during runtime
 		generator.specifyProverWitnessComputation(new Instruction() {
 
 			@Override
@@ -715,39 +726,58 @@ public class LongElement {
 					BigInteger a = evaluator.getWireValue(group1.get(i));
 					BigInteger b = evaluator.getWireValue(group2.get(i));
 					BigInteger carryValue = auxConstantChunks[i].add(a)
-							.subtract(b).subtract(alignedCoeffs[i])
+							.subtract(b).subtract(alignedAuxConstantChunks[i])
 							.add(prevCarry);
 					carryValue = carryValue.shiftRight(steps.get(i)
-							* BITWIDTH_PER_CHUNK);
+							* CHUNK_BITWIDTH);
 					evaluator.setWireValue(carries[i], carryValue);
 					prevCarry = carryValue;
 				}
 			}
 		});
 
+		// We must make sure that the carries values are bounded.
+
 		for (int j = 0; j < carries.length; j++) {
-			carries[j].getBitWires(carriesBitwidthBounds[j]);
+			// carries[j].getBitWires(carriesBitwidthBounds[j]);
+			carries[j].restrictBitLength(carriesBitwidthBounds[j]);
+
+			// Note: in this context restrictBitLength and getBitWires will be
+			// the same, but it's safer to use restrictBitLength
+			// when enforcing constraints.
 		}
+
+		// Now apply the main constraints
+
 		Wire prevCarry = generator.getZeroWire();
 		BigInteger prevBound = BigInteger.ZERO;
+
+		// recall carries.length = numOfGroupedChunks - 1
 		for (int j = 0; j < carries.length + 1; j++) {
 			Wire auxConstantChunkWire = generator
 					.createConstantWire(auxConstantChunks[j]);
-			Wire alignedCoeffWire = generator
-					.createConstantWire(alignedCoeffs[j]);
+			Wire alignedAuxConstantChunkWire = generator
+					.createConstantWire(alignedAuxConstantChunks[j]);
+
+			// the last carry value must be zero
 			Wire currentCarry = j == carries.length ? generator.getZeroWire()
 					: carries[j];
 
-			// overflow check
-			if (auxConstantChunks[j].add(group1_bound.get(j)).add(prevBound)
+			// overflow check for safety
+			if (auxConstantChunks[j].add(group1_bounds.get(j)).add(prevBound)
 					.compareTo(Config.FIELD_PRIME) >= 0) {
 				System.err.println("Overflow possibility @ ForceEqual()");
 			}
 
 			Wire w1 = auxConstantChunkWire
 					.add(group1.get(j).sub(group2.get(j))).add(prevCarry);
-			Wire w2 = alignedCoeffWire.add(currentCarry.mul(shift.pow(steps
-					.get(j))));
+			Wire w2 = alignedAuxConstantChunkWire.add(currentCarry.mul(shift
+					.pow(steps.get(j))));
+
+			// enforce w1 = w2
+			// note: in the last iteration, both auxConstantChunkWire and
+			// currentCarry will be zero,
+			// i.e., there will be no more values to be checked.
 
 			generator
 					.addEqualityAssertion(w1, w2,
@@ -755,8 +785,10 @@ public class LongElement {
 									+ j);
 
 			prevCarry = currentCarry;
-			if (j != carries.length)
+			if (j != carries.length) {
 				prevBound = Util.computeMaxValue(carriesBitwidthBounds[j]);
+			}
+
 		}
 	}
 
@@ -768,13 +800,14 @@ public class LongElement {
 			throw new IllegalArgumentException("input chunks are not aligned");
 		}
 
-		
 		Wire[] a1 = this.getArray();
 		Wire[] a2 = other.getArray();
 		final int length = Math.max(a1.length, a2.length);
-		final Wire[] paddedA1 = Util.padWireArray(a1, length, generator.getZeroWire());
-		final Wire[] paddedA2 = Util.padWireArray(a2, length, generator.getZeroWire());
-		
+		final Wire[] paddedA1 = Util.padWireArray(a1, length,
+				generator.getZeroWire());
+		final Wire[] paddedA2 = Util.padWireArray(a2, length,
+				generator.getZeroWire());
+
 		/*
 		 * Instead of doing the comparison naively (which will involve all the
 		 * bits) let the prover help us by pointing to the first chunk in the
@@ -802,33 +835,32 @@ public class LongElement {
 			}
 		});
 
-		// verify constraints about helper bits. 
+		// verify constraints about helper bits.
 		for (Wire w : helperBits) {
 			generator.addBinaryAssertion(w);
 		}
-//		Only one bit should be set.
+		// Only one bit should be set.
 		generator.addOneAssertion(new WireArray(helperBits).sumAllElements());
 
 		// verify "the greater than condition" for the specified chunk
 		Wire chunk1 = generator.getZeroWire();
 		Wire chunk2 = generator.getZeroWire();
 
-
 		for (int i = 0; i < helperBits.length; i++) {
 			chunk1 = chunk1.add(paddedA1[i].mul(helperBits[i]));
 			chunk2 = chunk2.add(paddedA2[i].mul(helperBits[i]));
-
 		}
 		generator.addOneAssertion(chunk1.isLessThan(chunk2,
-				LongElement.BITWIDTH_PER_CHUNK));
+				LongElement.CHUNK_BITWIDTH));
 
 		// check that the other more significant chunks are equal
 		Wire[] helperBits2 = new Wire[helperBits.length];
 		helperBits2[0] = generator.getZeroWire();
 		for (int i = 1; i < helperBits.length; i++) {
 			helperBits2[i] = helperBits2[i - 1].add(helperBits[i - 1]);
-			generator.addZeroAssertion(helperBits2[i].mul(paddedA1[i]
-					.sub(paddedA2[i])));
+//			generator.addZeroAssertion(helperBits2[i].mul(paddedA1[i]
+//					.sub(paddedA2[i])));
+			generator.addAssertion(helperBits2[i], paddedA1[i].sub(paddedA2[i]), generator.getZeroWire());	
 		}
 
 		// no checks needed for the less significant chunks
