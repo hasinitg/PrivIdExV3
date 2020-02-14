@@ -2,12 +2,14 @@ package examples.gadgets.ECDH;
 
 import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
-import examples.gadgets.diffieHellmanKeyExchange.ECDHKeyExchangeGadget;
 import examples.gadgets.math.FieldDivisionGadget;
 
 import java.math.BigInteger;
 
-public interface ECDHBase {
+//The interface to be implemented by any gadget implementing a function whose security depends on Elliptic Curve
+// Discrete Log problem. The default methods contains the arithmetic operations on elliptic curves, extracted from the
+// ECDHKeyExchangeGadget.java class from original jsnark source code.
+public interface ECDLBase {
     public final static int SECRET_BITWIDTH = 253;
     public final static BigInteger COEFF_A = new BigInteger("126932");
 
