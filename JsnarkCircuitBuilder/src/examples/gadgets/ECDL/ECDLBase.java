@@ -1,14 +1,17 @@
-package examples.gadgets.ECDH;
+package examples.gadgets.ECDL;
 
+import circuit.config.Config;
 import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
 import examples.gadgets.math.FieldDivisionGadget;
+import org.bouncycastle.pqc.math.linearalgebra.IntegerFunctions;
 
 import java.math.BigInteger;
 
-//The interface to be implemented by any gadget implementing a function whose security depends on Elliptic Curve
-// Discrete Log problem. The default methods contains the arithmetic operations on elliptic curves, extracted from the
+//The interface to be implemented by any gadget/circuit implementing a function whose security depends on Elliptic Curve
+// Discrete Log problem. The default methods contain the arithmetic operations on the elliptic curve, extracted from the
 // ECDHKeyExchangeGadget.java class from original jsnark source code.
+//The elliptic curve is: y^2 = x^3 + A.x^2 + x where A= 126932 and 128-bit security.
 public interface ECDLBase {
     public final static int SECRET_BITWIDTH = 253;
     public final static BigInteger COEFF_A = new BigInteger("126932");
@@ -93,6 +96,15 @@ public interface ECDLBase {
         Wire newX = q2.sub(COEFF_A).sub(p1.getX()).sub(p2.getX());
         Wire newY = p1.getX().mul(2).add(p2.getX()).add(COEFF_A).mul(q).sub(q3).sub(p1.getY());
         return new AffinePoint(newX, newY);
+    }
+
+    default BigInteger computeYCoordinate(BigInteger x) {
+        BigInteger xSqred = x.multiply(x).mod(Config.FIELD_PRIME);
+        BigInteger xCubed = xSqred.multiply(x).mod(Config.FIELD_PRIME);
+        BigInteger ySqred = xCubed.add(COEFF_A.multiply(xSqred)).add(x)
+                .mod(Config.FIELD_PRIME);
+        BigInteger y = IntegerFunctions.ressol(ySqred, Config.FIELD_PRIME);
+        return y;
     }
 
 }

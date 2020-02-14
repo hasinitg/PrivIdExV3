@@ -1,4 +1,4 @@
-package examples.gadgets.ECDH;
+package examples.gadgets.ECDL;
 
 import circuit.structure.Wire;
 
