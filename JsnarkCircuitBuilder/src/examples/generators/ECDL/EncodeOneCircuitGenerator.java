@@ -5,7 +5,7 @@ import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
 import examples.gadgets.ECDL.Constants;
 import examples.gadgets.ECDL.ECDLBase;
-import examples.gadgets.ECDL.Encode_One_Gadget;
+import examples.gadgets.ECDL.EncodeOneGadget;
 
 public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLBase {
 
@@ -17,7 +17,7 @@ public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLB
     private Wire publicKeyX;
     private Wire publicKeyY;
 
-    private Encode_One_Gadget encodeOneGadget;
+    private EncodeOneGadget encodeOneGadget;
 
     public EncodeOneCircuitGenerator(String circuitName){
         super(circuitName);
@@ -33,7 +33,7 @@ public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLB
         publicKeyY = createConstantWire(computeYCoordinate(Constants.PUBLIC_KEY_X),
                 "Y coordinate of the public key point");
 
-        encodeOneGadget = new Encode_One_Gadget(secretBits, baseX, baseY, publicKeyX, publicKeyY, Constants.DESC_ENCODE_ONE);
+        encodeOneGadget = new EncodeOneGadget(secretBits, baseX, baseY, publicKeyX, publicKeyY, Constants.DESC_ENCODE_ONE);
         makeOutputArray(encodeOneGadget.getOutputWires(), "Fresh encoding of one");
 
     }

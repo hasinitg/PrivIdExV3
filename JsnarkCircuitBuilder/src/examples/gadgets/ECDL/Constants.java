@@ -13,10 +13,11 @@ public class Constants {
     public static final String DESC_ADD_TWO_POINTS_OVER_EC = "Add_Two_Points_Over_EC";
     public static final String DESC_ENCODE_ONE = "Encode_One_With_EC_Elgamal_Exponent";
 
-    //samples values for the x-coordinate of the base point, x-coordinate of the public key and scalar value, taken from
+    //samples values for the x-coordinate of the base point, x-coordinate of the public key and secret scalar value, taken from
     //ECDHKeyExchange_Test.java
     public static BigInteger BASE_X = new BigInteger("4");
     public static BigInteger PUBLIC_KEY_X = new BigInteger("21766081959050939664800904742925354518084319102596785077490863571049214729748");
+
     public static BigInteger K = new BigInteger("13867691842196510828352345865165018381161315605899394650350519162543016860992");
     public static BigInteger a = new BigInteger("13867691842196510828352345865165018381161315605899394650350519162543016860990");
 }

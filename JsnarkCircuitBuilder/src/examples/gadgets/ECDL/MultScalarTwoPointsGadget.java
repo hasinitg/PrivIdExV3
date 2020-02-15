@@ -7,7 +7,7 @@ import circuit.structure.Wire;
 // of the type Mult_Scalar_Point_Gadget and returns their outputs.
 //This gadget can be used to compute a  fresh encoding of zero, i.e. En(0) = (k.B, k.P + 0.B) = (k.B, k.P).
 //or to multiply an existing encoding z =(z1, z2) by a scalar En(z) = (k.z1, k.z2)
-public class Mult_Scalar_TwoPoints_Gadget extends Gadget implements ECDLBase {
+public class MultScalarTwoPointsGadget extends Gadget implements ECDLBase {
     //inputs
     private AffinePoint point1;
     private AffinePoint point2;
@@ -18,11 +18,11 @@ public class Mult_Scalar_TwoPoints_Gadget extends Gadget implements ECDLBase {
     private AffinePoint resultPoint2;
 
     //sub gadgets
-    private Mult_Scalar_Point_Gadget multPoint1;
-    private Mult_Scalar_Point_Gadget multPoint2;
+    private MultScalarPointGadget multPoint1;
+    private MultScalarPointGadget multPoint2;
 
-    public Mult_Scalar_TwoPoints_Gadget(Wire[] secretBits, Wire point1X, Wire point1Y, Wire point2X, Wire point2Y,
-                                        boolean checkSecretBits, String desc){
+    public MultScalarTwoPointsGadget(Wire[] secretBits, Wire point1X, Wire point1Y, Wire point2X, Wire point2Y,
+                                     boolean checkSecretBits, String desc){
         super(desc);
         this.secretBits = secretBits;
         this.point1 = new AffinePoint(point1X, point1Y);
@@ -34,9 +34,9 @@ public class Mult_Scalar_TwoPoints_Gadget extends Gadget implements ECDLBase {
     }
 
     protected void buildCircuit(){
-        multPoint1 = new Mult_Scalar_Point_Gadget(point1.getX(), point1.getY(), secretBits, false,
+        multPoint1 = new MultScalarPointGadget(point1.getX(), point1.getY(), secretBits, false,
                 Constants.DESC_SCALAR_MULT_POINT_OVER_EC);
-        multPoint2 = new Mult_Scalar_Point_Gadget(point2.getX(), point2.getY(), secretBits, false,
+        multPoint2 = new MultScalarPointGadget(point2.getX(), point2.getY(), secretBits, false,
                 Constants.DESC_SCALAR_MULT_POINT_OVER_EC);
         Wire[] point1OutWires = multPoint1.getOutputWires();
         resultPoint1 = new AffinePoint(point1OutWires[0],point1OutWires[1]);
@@ -47,5 +47,13 @@ public class Mult_Scalar_TwoPoints_Gadget extends Gadget implements ECDLBase {
     @Override
     public Wire[] getOutputWires() {
         return new Wire[]{resultPoint1.getX(), resultPoint1.getY(), resultPoint2.getX(), resultPoint2.getY()};
+    }
+
+    public AffinePoint getResultPoint1() {
+        return resultPoint1;
+    }
+
+    public AffinePoint getResultPoint2() {
+        return resultPoint2;
     }
 }
