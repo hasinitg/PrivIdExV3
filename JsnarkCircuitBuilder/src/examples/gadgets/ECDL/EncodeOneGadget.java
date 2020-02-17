@@ -19,29 +19,26 @@ public class EncodeOneGadget extends Gadget implements ECDLBase {
     //output
     private Encoding encodingOfOne;
 
-    public EncodeOneGadget(Wire[] secretBits, Wire basePointX, Wire basePointY, Wire publicKeyPointX, Wire publicKeyPointY,
-                           String desc){
+    public EncodeOneGadget(Wire[] secretBits, AffinePoint basePoint, AffinePoint publicKeyPoint, String desc){
         super(desc);
-        this.basePoint = new AffinePoint(basePointX, basePointY);
-        this.publicKeyPoint = new AffinePoint(publicKeyPointX, publicKeyPointY);
+        this.basePoint = basePoint;
+        this.publicKeyPoint = publicKeyPoint;
         this.secretBits = secretBits;
 
         buildCircuit();
     }
 
     protected void buildCircuit(){
-        multScalarTwoPoints = new MultScalarTwoPointsGadget(secretBits, basePoint.getX(), basePoint.getY(),
-                publicKeyPoint.getX(), publicKeyPoint.getY(), true, Constants.DESC_SCALR_MULT_TWO_POINTS_OVER_EC);
-        Wire[] encodingZeroOutWires = multScalarTwoPoints.getOutputWires();
-        Encoding encodingOfZero = new Encoding(new AffinePoint(encodingZeroOutWires[0], encodingZeroOutWires[1]),
-                new AffinePoint(encodingZeroOutWires[2], encodingZeroOutWires[3]));
+        multScalarTwoPoints = new MultScalarTwoPointsGadget(secretBits, basePoint, publicKeyPoint,
+                true, Constants.DESC_SCALR_MULT_TWO_POINTS_OVER_EC);
 
-        addTwoPoints = new AddTwoPointsGadget(encodingOfZero.getEncodingPart2().getX(), encodingOfZero.getEncodingPart2().getY(),
-                basePoint.getX(), basePoint.getY(), Constants.DESC_ADD_TWO_POINTS_OVER_EC);
+        Encoding encodingOfZero = new Encoding(multScalarTwoPoints.getResultPoint1(),
+                multScalarTwoPoints.getResultPoint2());
 
-        Wire[] addTwoPointsOut = addTwoPoints.getOutputWires();
+        addTwoPoints = new AddTwoPointsGadget(encodingOfZero.getEncodingPart2(), basePoint,
+                Constants.DESC_ADD_TWO_POINTS_OVER_EC);
 
-        encodingOfOne = new Encoding(encodingOfZero.getEncodingPart1(), new AffinePoint(addTwoPointsOut[0], addTwoPointsOut[1]));
+        encodingOfOne = new Encoding(encodingOfZero.getEncodingPart1(), addTwoPoints.getResultPoint());
     }
 
     @Override

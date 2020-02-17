@@ -23,16 +23,16 @@ public class AffinePoint {
         this.y = y;
     }
 
-    AffinePoint(Wire x) {
+    public AffinePoint(Wire x) {
         this.x = x;
     }
 
-    AffinePoint(Wire x, Wire y) {
+    public AffinePoint(Wire x, Wire y) {
         this.x = x;
         this.y = y;
     }
 
-    AffinePoint(AffinePoint p) {
+    public AffinePoint(AffinePoint p) {
         this.x = p.x;
         this.y = p.y;
     }

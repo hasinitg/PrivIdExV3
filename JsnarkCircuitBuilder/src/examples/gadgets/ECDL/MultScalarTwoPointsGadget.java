@@ -21,12 +21,12 @@ public class MultScalarTwoPointsGadget extends Gadget implements ECDLBase {
     private MultScalarPointGadget multPoint1;
     private MultScalarPointGadget multPoint2;
 
-    public MultScalarTwoPointsGadget(Wire[] secretBits, Wire point1X, Wire point1Y, Wire point2X, Wire point2Y,
-                                     boolean checkSecretBits, String desc){
+    public MultScalarTwoPointsGadget(Wire[] secretBits,
+                                     AffinePoint point1, AffinePoint point2, boolean checkSecretBits, String desc){
         super(desc);
         this.secretBits = secretBits;
-        this.point1 = new AffinePoint(point1X, point1Y);
-        this.point2 = new AffinePoint(point2X, point2Y);
+        this.point1 = point1;
+        this.point2 = point2;
         if(checkSecretBits) {
             checkSecretBits(secretBits, generator);
         }
@@ -34,14 +34,12 @@ public class MultScalarTwoPointsGadget extends Gadget implements ECDLBase {
     }
 
     protected void buildCircuit(){
-        multPoint1 = new MultScalarPointGadget(point1.getX(), point1.getY(), secretBits, false,
+        multPoint1 = new MultScalarPointGadget(point1, secretBits, false,
                 Constants.DESC_SCALAR_MULT_POINT_OVER_EC);
-        multPoint2 = new MultScalarPointGadget(point2.getX(), point2.getY(), secretBits, false,
+        multPoint2 = new MultScalarPointGadget(point2, secretBits, false,
                 Constants.DESC_SCALAR_MULT_POINT_OVER_EC);
-        Wire[] point1OutWires = multPoint1.getOutputWires();
-        resultPoint1 = new AffinePoint(point1OutWires[0],point1OutWires[1]);
-        Wire[] point2OutWires = multPoint2.getOutputWires();
-        resultPoint2 = new AffinePoint(point2OutWires[0], point2OutWires[1]);
+        resultPoint1 = multPoint1.getOutPoint();
+        resultPoint2 =multPoint2.getOutPoint();
     }
 
     @Override

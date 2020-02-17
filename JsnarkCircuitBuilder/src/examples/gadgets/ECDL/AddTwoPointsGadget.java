@@ -10,25 +10,25 @@ public class AddTwoPointsGadget extends Gadget implements ECDLBase {
     private AffinePoint point2;
 
     //outputs
-    private AffinePoint result;
+    private AffinePoint resultPoint;
 
-    public AddTwoPointsGadget(Wire point1X, Wire point1Y, Wire point2X, Wire point2Y, String desc){
+    public AddTwoPointsGadget(AffinePoint point1, AffinePoint point2, String desc){
         super(desc);
-        this.point1 = new AffinePoint(point1X, point1Y);
-        this.point2 = new AffinePoint(point2X, point2Y);
+        this.point1 = point1;
+        this.point2 = point2;
         buildCircuit();
     }
 
     protected void buildCircuit(){
-        result = addAffinePoints(point1, point2);
+        resultPoint = addAffinePoints(point1, point2);
     }
 
     @Override
     public Wire[] getOutputWires() {
-        return new Wire[]{result.getX(), result.getY()};
+        return new Wire[]{resultPoint.getX(), resultPoint.getY()};
     }
 
-    public AffinePoint getResult() {
-        return result;
+    public AffinePoint getResultPoint() {
+        return resultPoint;
     }
 }

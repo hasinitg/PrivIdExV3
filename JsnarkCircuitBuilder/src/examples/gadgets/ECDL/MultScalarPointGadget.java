@@ -15,14 +15,13 @@ public class MultScalarPointGadget extends Gadget implements ECDLBase {
     private AffinePoint[] pointTable;
 
     //outputs
-    private Wire outPointX;
-    private Wire outPointY;
+    private AffinePoint outPoint;
 
     //since this gadget maybe used as part of another gadget, the parent gadget should indicate whether to check secret
     //bits or not, in order to avoid duplicate checks
-    public MultScalarPointGadget(Wire pointX, Wire pointY, Wire[] secretBits, boolean checkSecretBits, String desc){
+    public MultScalarPointGadget(AffinePoint pointOnEC, Wire[] secretBits, boolean checkSecretBits, String desc){
         super(desc);
-        this.pointToBeMultiplied = new AffinePoint(pointX, pointY);
+        this.pointToBeMultiplied = pointOnEC;
         this.secretBits = secretBits;
         if(checkSecretBits){
             checkSecretBits(secretBits, generator);
@@ -32,14 +31,16 @@ public class MultScalarPointGadget extends Gadget implements ECDLBase {
 
     protected void buildCircuit(){
         pointTable = preprocess(pointToBeMultiplied, secretBits);
-        AffinePoint outPoint = mul(secretBits, pointTable);
-        outPointX = outPoint.getX();
-        outPointY = outPoint.getY();
+        outPoint = mul(secretBits, pointTable);
     }
 
     @Override
     public Wire[] getOutputWires() {
-        return new Wire[]{outPointX, outPointY};
+        return new Wire[]{outPoint.getX(), outPoint.getY()};
+    }
+
+    public AffinePoint getOutPoint() {
+        return outPoint;
     }
 
 }

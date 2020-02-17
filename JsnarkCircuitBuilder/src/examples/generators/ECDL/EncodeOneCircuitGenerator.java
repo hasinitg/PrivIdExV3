@@ -3,6 +3,7 @@ package examples.generators.ECDL;
 import circuit.eval.CircuitEvaluator;
 import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
+import examples.gadgets.ECDL.AffinePoint;
 import examples.gadgets.ECDL.Constants;
 import examples.gadgets.ECDL.ECDLBase;
 import examples.gadgets.ECDL.EncodeOneGadget;
@@ -26,6 +27,7 @@ public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLB
     @Override
     protected void buildCircuit() {
         secretBits = createProverWitnessWireArray(Constants.SECRET_BITWIDTH, "scalar");
+
         baseX = createConstantWire(Constants.BASE_X, "X coordinate of the base point");
         baseY = createConstantWire(computeYCoordinate(Constants.BASE_X), "Y coordinate of the base point");
 
@@ -33,7 +35,8 @@ public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLB
         publicKeyY = createConstantWire(computeYCoordinate(Constants.PUBLIC_KEY_X),
                 "Y coordinate of the public key point");
 
-        encodeOneGadget = new EncodeOneGadget(secretBits, baseX, baseY, publicKeyX, publicKeyY, Constants.DESC_ENCODE_ONE);
+        encodeOneGadget = new EncodeOneGadget(secretBits,new AffinePoint(baseX, baseY),
+                new AffinePoint(publicKeyX, publicKeyY), Constants.DESC_ENCODE_ONE);
         makeOutputArray(encodeOneGadget.getOutputWires(), "Fresh encoding of one");
 
     }
