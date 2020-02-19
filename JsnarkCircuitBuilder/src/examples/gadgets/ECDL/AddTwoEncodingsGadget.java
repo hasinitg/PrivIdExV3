@@ -25,11 +25,21 @@ public class AddTwoEncodingsGadget extends Gadget implements ECDLBase {
     }
 
     public void buildCircuit(){
-        //addTwoPointsGadget1 = new AddTwoPointsGadget(encoding1.getEncodingPart1().getX(), )
+        addTwoPointsGadget1 = new AddTwoPointsGadget(encoding1.getEncodingPart1(), encoding2.getEncodingPart1(),
+                Constants.DESC_ADD_TWO_POINTS_OVER_EC);
+        addTwoPointsGadget2 = new AddTwoPointsGadget(encoding1.getEncodingPart2(), encoding2.getEncodingPart2(),
+                Constants.DESC_ADD_TWO_POINTS_OVER_EC);
+        encodingResult = new Encoding(addTwoPointsGadget1.getResultPoint(), addTwoPointsGadget2.getResultPoint());
+
     }
 
     @Override
     public Wire[] getOutputWires() {
-        return new Wire[0];
+        return new Wire[]{encodingResult.getEncodingPart1().getX(), encodingResult.getEncodingPart1().getX(),
+        encodingResult.getEncodingPart2().getX(), encodingResult.getEncodingPart2().getY()};
+    }
+
+    public Encoding getEncodingResult() {
+        return encodingResult;
     }
 }

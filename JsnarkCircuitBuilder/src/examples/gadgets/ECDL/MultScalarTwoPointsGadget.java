@@ -3,7 +3,7 @@ package examples.gadgets.ECDL;
 import circuit.operations.Gadget;
 import circuit.structure.Wire;
 
-//The gadget for multiplying two different points by the same scalar. It just combines two gadgets
+//The gadget for multiplying two different points on EC by the same scalar. It just combines two gadgets
 // of the type Mult_Scalar_Point_Gadget and returns their outputs.
 //This gadget can be used to compute a  fresh encoding of zero, i.e. En(0) = (k.B, k.P + 0.B) = (k.B, k.P).
 //or to multiply an existing encoding z =(z1, z2) by a scalar En(z) = (k.z1, k.z2)

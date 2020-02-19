@@ -12,6 +12,10 @@ public class Constants {
     public static final String DESC_SCALR_MULT_TWO_POINTS_OVER_EC = "Scalar_Mult_Two_Points_Over_EC";
     public static final String DESC_ADD_TWO_POINTS_OVER_EC = "Add_Two_Points_Over_EC";
     public static final String DESC_ENCODE_ONE = "Encode_One_With_EC_Elgamal_Exponent";
+    public static final String DESC_ADD_TWO_ENC = "Add_Two_Encodings";
+    public static final String DESC_UPDATE_ZEROTH_ENCODED_COEFFICIENT = "Update zeroth encoded coefficient";
+    public static final String DESC_COMMITMENT_SHA_256 = "Commitment_SHA256";
+
 
     //samples values for the x-coordinate of the base point, x-coordinate of the public key and secret scalar value, taken from
     //ECDHKeyExchange_Test.java

@@ -107,4 +107,8 @@ public interface ECDLBase {
         return y;
     }
 
+    default AffinePoint negateAffinePoint(AffinePoint p){
+        return new AffinePoint(p.getX(), p.getY().mul(-1));
+    }
+
 }
