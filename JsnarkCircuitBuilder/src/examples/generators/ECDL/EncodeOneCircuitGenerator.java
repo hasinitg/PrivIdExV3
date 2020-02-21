@@ -8,8 +8,14 @@ import examples.gadgets.ECDL.Constants;
 import examples.gadgets.ECDL.ECDLBase;
 import examples.gadgets.ECDL.EncodeOneGadget;
 
+import java.math.BigInteger;
+
 public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLBase {
 
+    //input
+    private BigInteger secretK;
+
+    //constant values
     private Wire[] secretBits;
 
     private Wire baseX;
@@ -18,10 +24,12 @@ public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLB
     private Wire publicKeyX;
     private Wire publicKeyY;
 
+    //gadget
     private EncodeOneGadget encodeOneGadget;
 
-    public EncodeOneCircuitGenerator(String circuitName){
+    public EncodeOneCircuitGenerator(BigInteger secretK, String circuitName){
         super(circuitName);
+        this.secretK = secretK;
 
     }
     @Override
@@ -44,13 +52,13 @@ public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLB
     @Override
     public void generateSampleInput(CircuitEvaluator evaluator) {
         for(int i=0; i<Constants.SECRET_BITWIDTH; i++){
-            evaluator.setWireValue(secretBits[i], Constants.K.testBit(i)?1:0);
+            evaluator.setWireValue(secretBits[i], secretK.testBit(i)?1:0);
         }
 
     }
 
     public static void main(String[] args) {
-        EncodeOneCircuitGenerator circuitGenerator = new EncodeOneCircuitGenerator(Constants.DESC_ENCODE_ONE);
+        EncodeOneCircuitGenerator circuitGenerator = new EncodeOneCircuitGenerator(Constants.K, Constants.DESC_ENCODE_ONE);
         circuitGenerator.generateCircuit();
         circuitGenerator.evalCircuit();
         circuitGenerator.prepFiles();
