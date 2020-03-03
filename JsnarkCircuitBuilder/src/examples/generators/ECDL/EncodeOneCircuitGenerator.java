@@ -12,17 +12,14 @@ import java.math.BigInteger;
 
 public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLBase {
 
-    //input
+    //input to the circuit
     private BigInteger secretK;
 
-    //constant values
+    //wire inputs to the gadgets
     private Wire[] secretBits;
 
-    private Wire baseX;
-    private Wire baseY;
-
-    private Wire publicKeyX;
-    private Wire publicKeyY;
+    private AffinePoint basePoint;
+    private AffinePoint publicKeyPoint;
 
     //gadget
     private EncodeOneGadget encodeOneGadget;
@@ -36,16 +33,19 @@ public class EncodeOneCircuitGenerator extends CircuitGenerator implements ECDLB
     protected void buildCircuit() {
         secretBits = createProverWitnessWireArray(Constants.SECRET_BITWIDTH, "scalar");
 
-        baseX = createConstantWire(Constants.BASE_X, "X coordinate of the base point");
-        baseY = createConstantWire(computeYCoordinate(Constants.BASE_X), "Y coordinate of the base point");
+        //TODO: abstract out following methods to a super class which extends circuit generator**************
+        Wire baseX = createConstantWire(Constants.BASE_X, "X coordinate of the base point");
+        Wire baseY = createConstantWire(computeYCoordinate(Constants.BASE_X), "Y coordinate of the base point");
+        basePoint = new AffinePoint(baseX, baseY);
 
-        publicKeyX = createConstantWire(Constants.PUBLIC_KEY_X, "X coordinate of the public key point");
-        publicKeyY = createConstantWire(computeYCoordinate(Constants.PUBLIC_KEY_X),
+        Wire publicKeyX = createConstantWire(Constants.PUBLIC_KEY_X, "X coordinate of the public key point");
+        Wire publicKeyY = createConstantWire(computeYCoordinate(Constants.PUBLIC_KEY_X),
                 "Y coordinate of the public key point");
+        publicKeyPoint = new AffinePoint(publicKeyX, publicKeyY);
+        ///***************************************************************************************************
 
-        encodeOneGadget = new EncodeOneGadget(secretBits,new AffinePoint(baseX, baseY),
-                new AffinePoint(publicKeyX, publicKeyY), Constants.DESC_ENCODE_ONE);
-        makeOutputArray(encodeOneGadget.getOutputWires(), "Fresh encoding of one");
+        encodeOneGadget = new EncodeOneGadget(secretBits, basePoint, publicKeyPoint, Constants.DESC_ENCODE_ONE);
+        makeOutputArray(encodeOneGadget.getOutputWires(), Constants.DESC_OP_FRESH_ENC_ONE);
 
     }
 

@@ -2,10 +2,8 @@ package examples.generators.ECDL;
 
 import circuit.eval.CircuitEvaluator;
 import circuit.structure.CircuitGenerator;
-import examples.gadgets.ECDL.Constants;
-import examples.gadgets.ECDL.ECDLBase;
-import examples.gadgets.ECDL.Encoding;
-import examples.gadgets.ECDL.ZerothEncodedCoefficientGadget;
+import circuit.structure.Wire;
+import examples.gadgets.ECDL.*;
 import examples.gadgets.hash.SHA256Gadget;
 
 import java.math.BigInteger;
@@ -13,52 +11,101 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.List;
 
 public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator implements ECDLBase {
 
     //inputs to the circuit
     private BigInteger hashOfIDAsset;
-    private List<BigInteger> existingEncodedZerothCoefficient;
     private BigInteger randomKeyForFreshEncZero;
 
     private BigInteger secretForCommitment;
 
     //input wires to the inside gadgets
-
-
+    /****secret witness*****/
+    Wire[] commitmentInput;
+    Wire[] hashIDAssetInput;
+    Wire[] randKeyFreshEncZeroInput;
+    /****public inputs********/
+    private Encoding existingEncodedZerothCoefficient;
+    /******constant inputs******/
+    private AffinePoint basePoint;
+    private AffinePoint publicKeyPoint;
 
     //intermediate gadgets
     private ZerothEncodedCoefficientGadget zerothEncodedCoefficientGadget;
     private SHA256Gadget sha256Gadget;
 
-    public ZerothEncodedCoeffCircuitGenerator(BigInteger hashOfIDAsset, List<BigInteger> encOfZerothCoeff, BigInteger randKey,
-                                              BigInteger commitmentSecret, String circuitName){
+    public ZerothEncodedCoeffCircuitGenerator(BigInteger hashOfIDAsset, Encoding encOfZerothCoeff,
+                                              BigInteger randForFreshEncZero, BigInteger commitmentSecret, String circuitName) {
 
         super(circuitName);
         this.hashOfIDAsset = hashOfIDAsset;
         this.existingEncodedZerothCoefficient = encOfZerothCoeff;
-        this.randomKeyForFreshEncZero = randKey;
+        this.randomKeyForFreshEncZero = randForFreshEncZero;
         this.secretForCommitment = commitmentSecret;
-        buildCircuit();
 
     }
 
     @Override
     protected void buildCircuit() {
         //create input wires and create gadgets using them. Set values for constant wires
+        commitmentInput = createProverWitnessWireArray(512);
+        sha256Gadget = new SHA256Gadget(commitmentInput, 1, 64, false,
+                false, Constants.DESC_COMMITMENT_SHA_256);
+        Wire[] commitment = sha256Gadget.getOutputWires();
+        makeOutputArray(commitment, Constants.DESC_COMMITMENT_SHA_256);
 
+        hashIDAssetInput = createProverWitnessWireArray(Constants.SECRET_BITWIDTH);
+        randKeyFreshEncZeroInput = createProverWitnessWireArray(Constants.SECRET_BITWIDTH);
+
+        //create input wires for the existing encoding of zeroth coefficient
+        Wire encPart1_X = createInputWire("X coordinate of part 1 of existing encoding of zeroth coefficient");
+        Wire encPart1_Y = createInputWire("Y coordinate of part 1 of existing encoding of zeroth coefficient");
+        AffinePoint part1 = new AffinePoint(encPart1_X, encPart1_Y);
+        Wire encPart2_X = createInputWire("X coordinate of part 2 of existing encoding of zeroth coefficient");
+        Wire encPart2_Y = createInputWire("Y coordinate of part 2 of existing encoding of zeroth coefficient");
+        AffinePoint part2 = new AffinePoint(encPart2_X, encPart2_Y);
+
+        existingEncodedZerothCoefficient = new Encoding(part1, part2);
+
+        //TODO: abstract out following methods to a super class which extends circuit generator**************
+        Wire baseX = createConstantWire(Constants.BASE_X, "X coordinate of the base point");
+        Wire baseY = createConstantWire(computeYCoordinate(Constants.BASE_X), "Y coordinate of the base point");
+        basePoint = new AffinePoint(baseX, baseY);
+
+        Wire publicKeyX = createConstantWire(Constants.PUBLIC_KEY_X, "X coordinate of the public key point");
+        Wire publicKeyY = createConstantWire(computeYCoordinate(Constants.PUBLIC_KEY_X),
+                "Y coordinate of the public key point");
+        publicKeyPoint = new AffinePoint(publicKeyX, publicKeyY);
+        ///***************************************************************************************************
+
+        zerothEncodedCoefficientGadget = new ZerothEncodedCoefficientGadget(existingEncodedZerothCoefficient,
+                basePoint, publicKeyPoint, hashIDAssetInput,
+                randKeyFreshEncZeroInput, Constants.DESC_UPDATE_ZEROTH_ENCODED_COEFFICIENT);
 
     }
 
     @Override
     public void generateSampleInput(CircuitEvaluator evaluator) {
-        String hashAsStringInHex = hashOfIDAsset.toString(16);
+        //String hashAsStringInHex = hashOfIDAsset.toString(16);
         //System.out.println(hashAsStringInHex.length());
 
-        String secretAsStringInHex = secretForCommitment.toString(16);
+        //String secretAsStringInHex = secretForCommitment.toString(16);
 
         //set values for user input wires
+        for (int i = 0; i < Constants.COMMITMENT_SECRET_LENGTH; i++) {
+            evaluator.setWireValue(commitmentInput[i], secretForCommitment.testBit(i) ? 1 : 0);
+        }
+        for (int i = 0; i < Constants.COMMITMENT_SECRET_LENGTH; i++) {
+            evaluator.setWireValue(commitmentInput[Constants.COMMITMENT_SECRET_LENGTH + i],
+                    hashOfIDAsset.testBit(i) ? 1 : 0);
+        }
+        for (int i = 0; i < Constants.SECRET_BITWIDTH; i++) {
+            evaluator.setWireValue(hashIDAssetInput[i], hashOfIDAsset.testBit(i) ? 1 : 0);
+        }
+        for (int i = 0; i < Constants.SECRET_BITWIDTH; i++) {
+            evaluator.setWireValue(randKeyFreshEncZeroInput[i], randomKeyForFreshEncZero.testBit(i) ? 1 : 0);
+        }
 
     }
 
@@ -71,7 +118,7 @@ public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator impleme
             //secret for the commitment
             //String secret = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl";
 
-            BigInteger secret = new BigInteger(SECRET_BITWIDTH, secureRandom);
+            BigInteger secret = new BigInteger(Constants.COMMITMENT_SECRET_LENGTH, secureRandom);
 
 
             //get hash of the identity asset
@@ -79,14 +126,14 @@ public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator impleme
             byte[] idAssetHash = MD.digest(identityAsset.getBytes(StandardCharsets.UTF_8));
             //this is to be given as input to UpdateZerothEncodedCoefficientGadget
             BigInteger hashInBigInt = new BigInteger(1, idAssetHash);
+            //BigInteger hashInBigInt = new BigInteger(Constants.COMMITMENT_SECRET_LENGTH, secureRandom);
 
-            //String hashAsStringInDecimal = hashInBigInt.toString();
-            //System.out.println(hashAsStringInDecimal);
-            //output of above sout:
-            //5956018361484594241756432284109372535225036440460752841575723218785082028040
-
-            //System.out.println(hashAsStringInDecimal.length());
-            //length = 76
+            ZerothEncodedCoeffCircuitGenerator ZEC = new ZerothEncodedCoeffCircuitGenerator(hashInBigInt,
+                    null, null, secret, Constants.DESC_UPDATE_ZEROTH_ENCODED_COEFFICIENT);
+            ZEC.generateCircuit();
+            ZEC.evalCircuit();
+            ZEC.prepFiles();
+            ZEC.runLibsnark();
 
             //generate random big int for x coordinate of the curve and compute corresponding y coordinate when supplying
             //existing encoded coefficients as inputs

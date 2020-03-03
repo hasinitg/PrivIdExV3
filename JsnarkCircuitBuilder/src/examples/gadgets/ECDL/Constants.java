@@ -6,6 +6,8 @@ public class Constants {
     //parameters
     //secret bit width of the scalar for scalar multiplication of a point on EC
     public final static int SECRET_BITWIDTH = 253;
+    //bit width of the BigInteger secrets given into the commitment
+    public final static int COMMITMENT_SECRET_LENGTH = 256;
 
     //gadget descriptions
     public static final String DESC_SCALAR_MULT_POINT_OVER_EC = "Scalar_Mult_point_Over_EC";
@@ -16,6 +18,9 @@ public class Constants {
     public static final String DESC_UPDATE_ZEROTH_ENCODED_COEFFICIENT = "Update zeroth encoded coefficient";
     public static final String DESC_COMMITMENT_SHA_256 = "Commitment_SHA256";
 
+    //output wire descriptions
+    public static final String DESC_OP_COMMITMENT = "Output_Commitment";
+    public static final String DESC_OP_FRESH_ENC_ONE = "Output_Fresh_Encoding_One";
 
     //samples values for the x-coordinate of the base point, x-coordinate of the public key and secret scalar value, taken from
     //ECDHKeyExchange_Test.java
