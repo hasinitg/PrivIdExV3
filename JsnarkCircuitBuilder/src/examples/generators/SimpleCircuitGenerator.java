@@ -43,12 +43,13 @@ public class SimpleCircuitGenerator extends CircuitGenerator {
 	}
 
 	public static void main(String[] args) throws Exception {
-
-		SimpleCircuitGenerator generator = new SimpleCircuitGenerator("simple_example");
-		generator.generateCircuit();
-		generator.evalCircuit();
-		generator.prepFiles();
-		generator.runLibsnark();
+		for(int i=0;i<2;i++){
+			SimpleCircuitGenerator generator = new SimpleCircuitGenerator("simple_example");
+			generator.generateCircuit();
+			generator.evalCircuit();
+			generator.prepFiles();
+			generator.runLibsnark();
+		}
 	}
 
 }

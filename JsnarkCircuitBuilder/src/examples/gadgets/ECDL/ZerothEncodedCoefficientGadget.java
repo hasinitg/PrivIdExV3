@@ -54,7 +54,8 @@ public class ZerothEncodedCoefficientGadget extends Gadget implements ECDLBase {
         Encoding freshEncZero = new Encoding(createFreshEncodingOfZero.getResultPoint1(),
                 createFreshEncodingOfZero.getResultPoint2());
 
-        outputRandomizedResult = new AddTwoEncodingsGadget(negatedIntermediateEnc, freshEncZero, Constants.DESC_ADD_TWO_ENC);
+        //outputRandomizedResult = new AddTwoEncodingsGadget(negatedIntermediateEnc, freshEncZero, Constants.DESC_ADD_TWO_ENC);
+        outputRandomizedResult = new AddTwoEncodingsGadget(intermediateEnc, freshEncZero, Constants.DESC_ADD_TWO_ENC);
         updatedZerothCoefficient = outputRandomizedResult.getEncodingResult();
 
     }
