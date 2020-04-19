@@ -50,7 +50,7 @@ public class TestGenerator extends CircuitGenerator implements ECDLBase {
     @Override
     public void generateSampleInput(CircuitEvaluator evaluator) {
         //it is enough only to get the secret as user input, can make the two points constants for testing purpose
-        for (int i = 0; i < Constants.COMMITMENT_SECRET_LENGTH; i++) {
+        for (int i = 0; i < Constants.SECRET_BITWIDTH; i++) {
             evaluator.setWireValue(scalar[i], secret.testBit(i) ? 1 : 0);
         }
     }
