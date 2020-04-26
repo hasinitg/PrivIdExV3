@@ -49,11 +49,11 @@ public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator impleme
     @Override
     protected void buildCircuit() {
         //create input wires and create gadgets using them. Set values for constant wires
-        commitmentInput = createProverWitnessWireArray(512);
-        sha256Gadget = new SHA256Gadget(commitmentInput, 1, 64, false,
-                false, Constants.DESC_COMMITMENT_SHA_256);
-        Wire[] commitment = sha256Gadget.getOutputWires();
-        makeOutputArray(commitment, Constants.DESC_COMMITMENT_SHA_256);
+//        commitmentInput = createProverWitnessWireArray(512);
+//        sha256Gadget = new SHA256Gadget(commitmentInput, 1, 64, false,
+//                false, Constants.DESC_COMMITMENT_SHA_256);
+//        Wire[] commitment = sha256Gadget.getOutputWires();
+//        makeOutputArray(commitment, Constants.DESC_COMMITMENT_SHA_256);
 
         hashIDAssetInput = createProverWitnessWireArray(Constants.SECRET_BITWIDTH);
         randKeyFreshEncZeroInput = createProverWitnessWireArray(Constants.SECRET_BITWIDTH);
