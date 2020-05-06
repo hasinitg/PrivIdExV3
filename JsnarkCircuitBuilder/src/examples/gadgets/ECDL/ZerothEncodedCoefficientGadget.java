@@ -14,8 +14,9 @@ public class ZerothEncodedCoefficientGadget extends Gadget implements ECDLBase {
     Encoding zerothCoefficient;
     AffinePoint basePoint;
     AffinePoint publicKeyPoint;
-    Wire[] hashIDAsset;
     Wire[] key;
+
+    Wire[] hashIDAsset;
 
     //intermediate gadgets
     MultScalarTwoPointsGadget multZerothCoeffByHash;
@@ -30,10 +31,10 @@ public class ZerothEncodedCoefficientGadget extends Gadget implements ECDLBase {
                                           String desc){
         super(desc);
         this.zerothCoefficient = existingZerothCoeff;
-        this. basePoint = basePoint;
+        this.basePoint = basePoint;
         this.publicKeyPoint = publicKeyPoint;
-        this.hashIDAsset = hashOfIDAsset;
         this.key = randomKey;
+        this.hashIDAsset = hashOfIDAsset;
 
         buildCircuit();
     }
@@ -42,11 +43,11 @@ public class ZerothEncodedCoefficientGadget extends Gadget implements ECDLBase {
         multZerothCoeffByHash = new MultScalarTwoPointsGadget(hashIDAsset, zerothCoefficient.getEncodingPart1(),
                 zerothCoefficient.getEncodingPart2(), true, Constants.DESC_SCALR_MULT_TWO_POINTS_OVER_EC);
         //intermediate output
-        Encoding intermediateEnc = new Encoding(multZerothCoeffByHash.getResultPoint1(),
-                multZerothCoeffByHash.getResultPoint2());
+//        Encoding intermediateEnc = new Encoding(multZerothCoeffByHash.getResultPoint1(),
+//                multZerothCoeffByHash.getResultPoint2());
 
-        Encoding negatedIntermediateEnc = new Encoding(negateAffinePoint(intermediateEnc.getEncodingPart1()),
-                negateAffinePoint(intermediateEnc.getEncodingPart2()));
+        Encoding negatedIntermediateEnc = new Encoding(negateAffinePoint(multZerothCoeffByHash.getResultPoint1()),
+                negateAffinePoint(multZerothCoeffByHash.getResultPoint2()));
 
         createFreshEncodingOfZero = new MultScalarTwoPointsGadget(key, basePoint, publicKeyPoint, true,
                 Constants.DESC_SCALR_MULT_TWO_POINTS_OVER_EC);
@@ -55,7 +56,7 @@ public class ZerothEncodedCoefficientGadget extends Gadget implements ECDLBase {
                 createFreshEncodingOfZero.getResultPoint2());
 
         //outputRandomizedResult = new AddTwoEncodingsGadget(negatedIntermediateEnc, freshEncZero, Constants.DESC_ADD_TWO_ENC);
-        outputRandomizedResult = new AddTwoEncodingsGadget(intermediateEnc, freshEncZero, Constants.DESC_ADD_TWO_ENC);
+        outputRandomizedResult = new AddTwoEncodingsGadget(negatedIntermediateEnc, freshEncZero, Constants.DESC_ADD_TWO_ENC);
         updatedZerothCoefficient = outputRandomizedResult.getEncodingResult();
 
     }
