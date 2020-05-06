@@ -83,6 +83,7 @@ public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator impleme
         zerothEncodedCoefficientGadget = new ZerothEncodedCoefficientGadget(existingEncodedZerothCoefficient,
                 basePoint, publicKeyPoint, hashIDAssetInput,
                 randKeyFreshEncZeroInput, Constants.DESC_UPDATE_ZEROTH_ENCODED_COEFFICIENT);
+        makeOutputArray(zerothEncodedCoefficientGadget.getOutputWires());
 
     }
 
