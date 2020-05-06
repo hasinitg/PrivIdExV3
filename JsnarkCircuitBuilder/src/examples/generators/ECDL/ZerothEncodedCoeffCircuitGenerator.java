@@ -50,11 +50,11 @@ public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator impleme
     @Override
     protected void buildCircuit() {
         //create input wires and create gadgets using them. Set values for constant wires
-//        commitmentInput = createProverWitnessWireArray(512);
-//        sha256Gadget = new SHA256Gadget(commitmentInput, 1, 64, false,
-//                false, Constants.DESC_COMMITMENT_SHA_256);
-//        Wire[] commitment = sha256Gadget.getOutputWires();
-//        makeOutputArray(commitment, Constants.DESC_COMMITMENT_SHA_256);
+        commitmentInput = createProverWitnessWireArray(512);
+        sha256Gadget = new SHA256Gadget(commitmentInput, 1, 64, false,
+                false, Constants.DESC_COMMITMENT_SHA_256);
+        Wire[] commitment = sha256Gadget.getOutputWires();
+        makeOutputArray(commitment, Constants.DESC_COMMITMENT_SHA_256);
 
         hashIDAssetInput = createProverWitnessWireArray(Constants.SECRET_BITWIDTH);
         randKeyFreshEncZeroInput = createProverWitnessWireArray(Constants.SECRET_BITWIDTH);
@@ -90,13 +90,13 @@ public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator impleme
     public void generateSampleInput(CircuitEvaluator evaluator) {
 
         //set values for user input wires
-//        for (int i = 0; i < Constants.COMMITMENT_SECRET_LENGTH; i++) {
-//            evaluator.setWireValue(commitmentInput[i], secretForCommitment.testBit(i) ? 1 : 0);
-//        }
-//        for (int i = 0; i < Constants.COMMITMENT_SECRET_LENGTH; i++) {
-//            evaluator.setWireValue(commitmentInput[Constants.COMMITMENT_SECRET_LENGTH + i],
-//                    hashOfIDAsset.testBit(i) ? 1 : 0);
-//        }
+        for (int i = 0; i < Constants.COMMITMENT_SECRET_LENGTH; i++) {
+            evaluator.setWireValue(commitmentInput[i], secretForCommitment.testBit(i) ? 1 : 0);
+        }
+        for (int i = 0; i < Constants.COMMITMENT_SECRET_LENGTH; i++) {
+            evaluator.setWireValue(commitmentInput[Constants.COMMITMENT_SECRET_LENGTH + i],
+                    hashOfIDAsset.testBit(i) ? 1 : 0);
+        }
         for (int i = 0; i < Constants.SECRET_BITWIDTH; i++) {
             evaluator.setWireValue(hashIDAssetInput[i], hashOfIDAsset.testBit(i) ? 1 : 0);
         }
