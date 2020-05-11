@@ -37,7 +37,8 @@ public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator impleme
     private SHA256Gadget sha256Gadget;
 
     public ZerothEncodedCoeffCircuitGenerator(BigInteger hashOfIDAsset, EncodingBigInt encOfZerothCoeff,
-                                              BigInteger randForFreshEncZero, BigInteger commitmentSecret, String circuitName) {
+                                              BigInteger randForFreshEncZero, BigInteger commitmentSecret,
+                                              String circuitName) {
 
         super(circuitName);
         this.hashOfIDAsset = hashOfIDAsset;

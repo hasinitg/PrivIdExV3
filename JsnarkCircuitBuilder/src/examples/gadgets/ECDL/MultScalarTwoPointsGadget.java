@@ -17,6 +17,9 @@ public class MultScalarTwoPointsGadget extends Gadget implements ECDLBase {
     private AffinePoint resultPoint1;
     private AffinePoint resultPoint2;
 
+    //outputs
+    private Encoding resultingEncoding;
+
     //sub gadgets
     private MultScalarPointGadget multPoint1;
     private MultScalarPointGadget multPoint2;
@@ -40,6 +43,7 @@ public class MultScalarTwoPointsGadget extends Gadget implements ECDLBase {
                 Constants.DESC_SCALAR_MULT_POINT_OVER_EC);
         resultPoint1 = multPoint1.getOutPoint();
         resultPoint2 =multPoint2.getOutPoint();
+        resultingEncoding = new Encoding(resultPoint1, resultPoint2);
     }
 
     @Override
@@ -49,6 +53,10 @@ public class MultScalarTwoPointsGadget extends Gadget implements ECDLBase {
 
     public AffinePoint getResultPoint1() {
         return resultPoint1;
+    }
+
+    public Encoding getResultingEncoding() {
+        return resultingEncoding;
     }
 
     public AffinePoint getResultPoint2() {

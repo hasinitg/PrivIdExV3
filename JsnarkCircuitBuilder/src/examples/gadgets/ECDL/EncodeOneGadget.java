@@ -2,9 +2,11 @@ package examples.gadgets.ECDL;
 
 import circuit.operations.Gadget;
 import circuit.structure.Wire;
-
-//Gadget for computing fresh encoding of one, using the Elliptic Curve Elgamal in the exponent encoding scheme used in
-// PrivIdEx. E.g. Encode(1) = (kB, kP+1B), where k is a secret, B is base point and P is public key.
+/**
+ * Gadget for computing fresh encoding of one, using the Elliptic Curve Elgamal in the exponent encoding scheme used in
+ * PrivIdEx. In other words, this is the gadget used in the circuit for proving the NP statement NS4.1.
+ * E.g. Encode(1) = (kB, kP+1B), where k is a secret, B is base point and P is public key.
+ */
 public class EncodeOneGadget extends Gadget implements ECDLBase {
 
     //inputs

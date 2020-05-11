@@ -16,6 +16,7 @@ public class Constants {
     public static final String DESC_ENCODE_ONE = "Encode_One_With_EC_Elgamal_Exponent";
     public static final String DESC_ADD_TWO_ENC = "Add_Two_Encodings";
     public static final String DESC_UPDATE_ZEROTH_ENCODED_COEFFICIENT = "Update zeroth encoded coefficient";
+    public static final String DESC_UPDATE_ITH_ENCODED_COEFFICIENT = "Update ith encoded coefficient";
     public static final String DESC_COMMITMENT_SHA_256 = "Commitment_SHA256";
 
     //output wire descriptions
