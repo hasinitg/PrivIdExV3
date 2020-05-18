@@ -14,23 +14,23 @@ import circuit.structure.Wire;
 public class IthEncodedCoefficientGadget extends Gadget implements ECDLBase {
 
     //inputs
-    Encoding ithCoefficient;
-    Encoding iMinusOnethCoefficiant;
+    private Encoding ithCoefficient;
+    private Encoding iMinusOnethCoefficiant;
 
-    AffinePoint basePoint;
-    AffinePoint publicKeyPoint;
-    Wire[] key;
+    private AffinePoint basePoint;
+    private AffinePoint publicKeyPoint;
+    private Wire[] key;
 
-    Wire[] hashIDAsset;
+    private Wire[] hashIDAsset;
 
     //intermediate gadgets
-    MultScalarTwoPointsGadget multIthCoeffByHash;
-    MultScalarTwoPointsGadget createFreshEncodingOfZero;
-    AddTwoEncodingsGadget addMultIthAndIMinusOneCoeffs;
-    AddTwoEncodingsGadget randomizationGadget;
+    private MultScalarTwoPointsGadget multIthCoeffByHash;
+    private MultScalarTwoPointsGadget createFreshEncodingOfZero;
+    private AddTwoEncodingsGadget addMultIthAndIMinusOneCoeffs;
+    private AddTwoEncodingsGadget randomizationGadget;
 
     //output
-    Encoding updatedIthCoefficient;
+    private Encoding updatedIthCoefficient;
 
     public IthEncodedCoefficientGadget(Encoding existingIthCoeff, Encoding existingIMinusOneCoeff,
                                        AffinePoint basePoint, AffinePoint publicKeyPoint, Wire[] hashIDAsset,

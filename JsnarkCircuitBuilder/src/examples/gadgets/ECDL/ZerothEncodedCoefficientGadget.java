@@ -13,20 +13,20 @@ import circuit.structure.Wire;
 public class ZerothEncodedCoefficientGadget extends Gadget implements ECDLBase {
 
     //inputs
-    Encoding zerothCoefficient;
-    AffinePoint basePoint;
-    AffinePoint publicKeyPoint;
-    Wire[] key;
+    private Encoding zerothCoefficient;
+    private AffinePoint basePoint;
+    private AffinePoint publicKeyPoint;
+    private Wire[] key;
 
-    Wire[] hashIDAsset;
+    private Wire[] hashIDAsset;
 
     //intermediate gadgets
-    MultScalarTwoPointsGadget multZerothCoeffByHash;
-    MultScalarTwoPointsGadget createFreshEncodingOfZero;
-    AddTwoEncodingsGadget outputRandomizedResult;
+    private MultScalarTwoPointsGadget multZerothCoeffByHash;
+    private MultScalarTwoPointsGadget createFreshEncodingOfZero;
+    private AddTwoEncodingsGadget outputRandomizedResult;
 
     //output
-    Encoding updatedZerothCoefficient;
+    private Encoding updatedZerothCoefficient;
 
     public ZerothEncodedCoefficientGadget(Encoding existingZerothCoeff, AffinePoint basePoint,
                                           AffinePoint publicKeyPoint, Wire[] hashOfIDAsset, Wire[] randomKey,

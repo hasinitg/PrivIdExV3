@@ -22,9 +22,9 @@ public class ZerothEncodedCoeffCircuitGenerator extends CircuitGenerator impleme
 
     //input wires to the inside gadgets
     /****secret witness*****/
-    Wire[] commitmentInput;
-    Wire[] hashIDAssetInput;
-    Wire[] randKeyFreshEncZeroInput;
+    private Wire[] commitmentInput;
+    private Wire[] hashIDAssetInput;
+    private Wire[] randKeyFreshEncZeroInput;
 
     /****public inputs********/
     private Encoding existingEncodedZerothCoefficient;

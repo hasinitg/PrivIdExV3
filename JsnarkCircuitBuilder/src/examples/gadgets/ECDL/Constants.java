@@ -17,6 +17,7 @@ public class Constants {
     public static final String DESC_ADD_TWO_ENC = "Add_Two_Encodings";
     public static final String DESC_UPDATE_ZEROTH_ENCODED_COEFFICIENT = "Update zeroth encoded coefficient";
     public static final String DESC_UPDATE_ITH_ENCODED_COEFFICIENT = "Update ith encoded coefficient";
+    public static final String DESC_EVALUATE_ON_POLYNOMIAL_ON_ASSET = "Evaluate polynomial on the asset";
     public static final String DESC_COMMITMENT_SHA_256 = "Commitment_SHA256";
 
     //output wire descriptions
@@ -29,6 +30,11 @@ public class Constants {
     public static BigInteger PUBLIC_KEY_X = new BigInteger(
             "21766081959050939664800904742925354518084319102596785077490863571049214729748");
 
+    public static BigInteger K = new BigInteger(
+            "13867691842196510828352345865165018381161315605899394650350519162543016860992");
+    public static BigInteger a = new BigInteger(
+            "13867691842196510828352345865165018381161315605899394650350519162543016860000");
+
     public static BigInteger RANDOM_POINT1_X = new BigInteger(
             "8692280925698678819395286411517030374413450951935538999275412489797215056823");
     public static BigInteger RANDOM_POINT2_X = new BigInteger(
@@ -38,9 +44,4 @@ public class Constants {
             "2458099703116069362520077371852618590998147701980245481980763118029756129489");
     public static BigInteger RANDOM_POINT4_X = new BigInteger(
             "1589575441973945141227409974221325221759518542560332234636659869481449122948");
-
-    public static BigInteger K = new BigInteger(
-            "13867691842196510828352345865165018381161315605899394650350519162543016860992");
-    public static BigInteger a = new BigInteger(
-            "13867691842196510828352345865165018381161315605899394650350519162543016860000");
 }
