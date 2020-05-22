@@ -5,8 +5,6 @@ import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
 import examples.gadgets.ECDL.*;
 import examples.gadgets.hash.SHA256Gadget;
-import org.graalvm.compiler.core.common.type.ArithmeticOpTable;
-
 import java.io.*;
 import java.math.BigInteger;
 import java.security.SecureRandom;
