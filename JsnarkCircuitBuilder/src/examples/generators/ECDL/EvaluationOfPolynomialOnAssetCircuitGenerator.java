@@ -5,8 +5,11 @@ import circuit.structure.CircuitGenerator;
 import circuit.structure.Wire;
 import examples.gadgets.ECDL.*;
 import examples.gadgets.hash.SHA256Gadget;
+import org.graalvm.compiler.core.common.type.ArithmeticOpTable;
 
+import java.io.*;
 import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -106,15 +109,15 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
     public void generateSampleInput(CircuitEvaluator evaluator) {
         //populate the wire inputs for powers of ID asset hash from highest to the lowest
         int index = 0;
-        for(int i = numberOfPowersOfIDHash; i>1; i--){
+        for (int i = numberOfPowersOfIDHash; i > 1; i--) {
             BigInteger powerOfIDAsset = hashOfIDAsset.pow(i);
             for (int j = 0; j < Constants.SECRET_BITWIDTH; j++) {
-                evaluator.setWireValue(powersOfIDHash.get(index)[j], powerOfIDAsset.testBit(j)?1:0);
+                evaluator.setWireValue(powersOfIDHash.get(index)[j], powerOfIDAsset.testBit(j) ? 1 : 0);
             }
-            index ++;
+            index++;
         }
         for (int j = 0; j < Constants.SECRET_BITWIDTH; j++) {
-            evaluator.setWireValue(powersOfIDHash.get(numberOfPowersOfIDHash - 1)[j], hashOfIDAsset.testBit(j) ? 1 : 0);
+            evaluator.setWireValue(powersOfIDHash.get(index)[j], hashOfIDAsset.testBit(j) ? 1 : 0);
         }
 
         //set values for user input wires
@@ -125,15 +128,71 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
             evaluator.setWireValue(commitmentInput[Constants.COMMITMENT_SECRET_LENGTH + i],
                     hashOfIDAsset.testBit(i) ? 1 : 0);
         }
-
+        for (int i = 0; i < Constants.SECRET_BITWIDTH; i++) {
+            evaluator.setWireValue(keyForFreshEncZero[i], randKey.testBit(i) ? 1 : 0);
+        }
         //populate the encodings list form highest to the lowest
+        for (int i = 0; i < numberOfExistingEncodings; i++) {
 
+            evaluator.setWireValue(existingEncodings.get(i).getEncodingPart1().getX(),
+                    encodingBigInts.get(i).getPart1().getX());
+            evaluator.setWireValue(existingEncodings.get(i).getEncodingPart1().getY(),
+                    encodingBigInts.get(i).getPart1().getY());
+
+            evaluator.setWireValue(existingEncodings.get(i).getEncodingPart2().getX(),
+                    encodingBigInts.get(i).getPart2().getX());
+            evaluator.setWireValue(existingEncodings.get(i).getEncodingPart2().getY(),
+                    encodingBigInts.get(i).getPart2().getY());
+        }
 
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+
+        SecureRandom secureRandom = new SecureRandom();
+        BigInteger secret = new BigInteger(Constants.COMMITMENT_SECRET_LENGTH, secureRandom);
+
+        BigInteger hashInBigInt = Constants.a;
+        BigInteger randKeyForFreshEncodingOfZero = Constants.K;
+        List<EncodingBigInt> encodingBigInts = null;
         //define array of different values for registering asset's coefficient (2, 4, 8, 16, 32)
         //for each such value, read the encodings from the file, and run the circuit
+        int[] registeringIDAssetCoefficients = {2};
+        int registeringIDAssetCoefficient = 0;
+        ECDLBase ecdlBase = new ECDLBase(){};
+        for (int i = 0; i < registeringIDAssetCoefficients.length; i++) {
+            registeringIDAssetCoefficient = registeringIDAssetCoefficients[i];
+            int numberOfEncodingsRequired = registeringIDAssetCoefficient;
+            //list for storing encodings
+            encodingBigInts = new ArrayList<>(numberOfEncodingsRequired);
+            //read X coordinates of ECPoints from file, compute Y coordinates, create encodings and populate the list
+            File inputFile = new File("Encodings" + "_" + numberOfEncodingsRequired);
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile));
+            for(int j=0; j<numberOfEncodingsRequired; j++){
+                //read x coordinate for the first point in the encoding
+                String bigIntForX = bufferedReader.readLine();
+                BigInteger xCoordinate = new BigInteger(bigIntForX);
+                BigInteger yCoordinate = ecdlBase.computeYCoordinate(xCoordinate);
 
+                AffinePointBigInt part1 = new AffinePointBigInt(xCoordinate, yCoordinate);
+
+                //read x coordinate for the second point in the encoding
+                bigIntForX = bufferedReader.readLine();
+                xCoordinate = new BigInteger(bigIntForX);
+                yCoordinate = ecdlBase.computeYCoordinate(xCoordinate);
+
+                AffinePointBigInt part2 = new AffinePointBigInt(xCoordinate, yCoordinate);
+                EncodingBigInt encodingBigInt = new EncodingBigInt(part1, part2);
+                encodingBigInts.add(encodingBigInt);
+            }
+            EvaluationOfPolynomialOnAssetCircuitGenerator circuitGenerator =
+                    new EvaluationOfPolynomialOnAssetCircuitGenerator(encodingBigInts, registeringIDAssetCoefficient,
+                            hashInBigInt, randKeyForFreshEncodingOfZero, secret,
+                            Constants.DESC_EVALUATE_ON_POLYNOMIAL_ON_ASSET);
+            circuitGenerator.generateCircuit();
+            circuitGenerator.evalCircuit();
+            circuitGenerator.prepFiles();
+            circuitGenerator.runLibsnark();
+        }
     }
 }

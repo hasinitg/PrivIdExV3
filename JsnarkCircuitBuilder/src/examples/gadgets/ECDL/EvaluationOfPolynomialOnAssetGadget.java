@@ -38,25 +38,28 @@ public class EvaluationOfPolynomialOnAssetGadget extends Gadget implements ECDLB
 
     protected void buildCircuit(){
         List<Encoding> multResults = new ArrayList<>();
-        for(int i=coefficientOfRegisteringAsset-1; i>=1; i--){
-            Wire[] hashOfAssetRaisedToI = powersOfIDAssetHash.get(i-1);
+        int numberOfPowersOfIDHash = coefficientOfRegisteringAsset -1;
+        int i;
+        for(i=0; i<numberOfPowersOfIDHash; i++){
+            Wire[] hashOfAssetRaisedToI = powersOfIDAssetHash.get(i);
             Encoding existingIthCoefficient = existingEncodings.get(i);
             MultScalarTwoPointsGadget multScalarTwoPointsGadget = new MultScalarTwoPointsGadget(hashOfAssetRaisedToI,
                     existingIthCoefficient.getEncodingPart1(), existingIthCoefficient.getEncodingPart2(),
                     true, Constants.DESC_SCALAR_MULT_POINT_OVER_EC);
+
             multResults.add(multScalarTwoPointsGadget.getResultingEncoding());
 
         }
         //add zeroth existing coefficient and fresh encoding of zero to multResults, because they needed to be added to
         //the final result in the next step below
-        multResults.add(existingEncodings.get(0));
+        multResults.add(existingEncodings.get(i));
         MultScalarTwoPointsGadget createFreshEncodingOfZero = new MultScalarTwoPointsGadget(key, basePoint, publicPoint,
                 true, Constants.DESC_SCALR_MULT_TWO_POINTS_OVER_EC);
         multResults.add(createFreshEncodingOfZero.getResultingEncoding());
 
         Encoding finalResult = multResults.get(0);
-        for(int i=1; i<multResults.size(); i++){
-            Encoding nextCandidateForAddition = multResults.get(i);
+        for(int j=1; j<multResults.size(); j++){
+            Encoding nextCandidateForAddition = multResults.get(j);
             AddTwoEncodingsGadget addTwoEncodingsGadget = new AddTwoEncodingsGadget(finalResult,
                     nextCandidateForAddition, Constants.DESC_ADD_TWO_ENC);
             finalResult = addTwoEncodingsGadget.getEncodingResult();
