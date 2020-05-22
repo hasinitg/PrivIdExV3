@@ -13,7 +13,7 @@ import java.util.List;
 public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenerator implements ECDLBase {
 
     //inputs to the circuit
-    private BigInteger hashofIDAsset;
+    private BigInteger hashOfIDAsset;
     private BigInteger commitmentSecret;
     private BigInteger randKey;
     private int coeffOfRegisteringAsset;
@@ -37,11 +37,15 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
     private EvaluationOfPolynomialOnAssetGadget evaluationOfPolynomialOnAssetGadget;
     private SHA256Gadget sha256Gadget;
 
+    //local variables
+    int numberOfPowersOfIDHash;
+    int numberOfExistingEncodings;
+
     public EvaluationOfPolynomialOnAssetCircuitGenerator(List<EncodingBigInt> encodings, int assetCoeff,
                                                          BigInteger hashOfIDAsset, BigInteger randKey,
                                                          BigInteger commitmentSecret, String desc) {
         super(desc);
-        this.hashofIDAsset = hashOfIDAsset;
+        this.hashOfIDAsset = hashOfIDAsset;
         this.commitmentSecret = commitmentSecret;
         this.randKey = randKey;
         this.encodingBigInts = encodings;
@@ -58,13 +62,28 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
         Wire[] commitment = sha256Gadget.getOutputWires();
         makeOutputArray(commitment, Constants.DESC_COMMITMENT_SHA_256);
 
-        powersOfIDHash = new ArrayList<>(coeffOfRegisteringAsset - 1);
-        for (int i = 0; i < coeffOfRegisteringAsset; i++) {
+        numberOfPowersOfIDHash = coeffOfRegisteringAsset - 1;
+        powersOfIDHash = new ArrayList<>(numberOfPowersOfIDHash);
+        for (int i = 0; i < numberOfPowersOfIDHash; i++) {
             powersOfIDHash.add(createProverWitnessWireArray(Constants.SECRET_BITWIDTH));
         }
         keyForFreshEncZero = createProverWitnessWireArray(Constants.SECRET_BITWIDTH);
 
         //create list of existing encodings
+        numberOfExistingEncodings = coeffOfRegisteringAsset;
+        existingEncodings = new ArrayList<>(numberOfExistingEncodings);
+        for (int i = 0; i < numberOfExistingEncodings; i++) {
+            Wire encPart1_X = createInputWire("X coordinate of part 1 of " + i + "th encoded coefficient");
+            Wire encPart1_Y = createInputWire("Y coordinate of part 1 of " + i + "th encoded coefficient");
+
+            Wire encPart2_X = createInputWire("X coordinate of part 2 of " + i + "th encoded coefficient");
+            Wire encPart2_Y = createInputWire("Y coordinate of part 2 of " + i + "th encoded coefficient");
+
+            Encoding existingEncodedCoefficient = new Encoding(new AffinePoint(encPart1_X, encPart1_Y),
+                    new AffinePoint(encPart2_X, encPart2_Y));
+            existingEncodings.add(existingEncodedCoefficient);
+        }
+
 
         //TODO: abstract out following methods to a super class which extends circuit generator**************
         Wire baseX = createConstantWire(Constants.BASE_X, "X coordinate of the base point");
@@ -77,14 +96,27 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
         publicKeyPoint = new AffinePoint(publicKeyX, publicKeyY);
 
 
-
-
-
-
+        evaluationOfPolynomialOnAssetGadget = new EvaluationOfPolynomialOnAssetGadget(existingEncodings,
+                coeffOfRegisteringAsset, powersOfIDHash, basePoint, publicKeyPoint, keyForFreshEncZero,
+                Constants.DESC_EVALUATE_ON_POLYNOMIAL_ON_ASSET);
+        makeOutputArray(evaluationOfPolynomialOnAssetGadget.getOutputWires());
     }
 
     @Override
     public void generateSampleInput(CircuitEvaluator evaluator) {
+        //populate the wire inputs for powers of ID asset hash from highest to the lowest
+        int index = 0;
+        for(int i = numberOfPowersOfIDHash; i>1; i--){
+            BigInteger powerOfIDAsset = hashOfIDAsset.pow(i);
+            for (int j = 0; j < Constants.SECRET_BITWIDTH; j++) {
+                evaluator.setWireValue(powersOfIDHash.get(index)[j], powerOfIDAsset.testBit(j)?1:0);
+            }
+            index ++;
+        }
+        for (int j = 0; j < Constants.SECRET_BITWIDTH; j++) {
+            evaluator.setWireValue(powersOfIDHash.get(numberOfPowersOfIDHash - 1)[j], hashOfIDAsset.testBit(j) ? 1 : 0);
+        }
+
         //set values for user input wires
         for (int i = 0; i < Constants.COMMITMENT_SECRET_LENGTH; i++) {
             evaluator.setWireValue(commitmentInput[i], commitmentSecret.testBit(i) ? 1 : 0);
@@ -94,7 +126,14 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
                     hashOfIDAsset.testBit(i) ? 1 : 0);
         }
 
-        public static void main (String[]args){
+        //populate the encodings list form highest to the lowest
 
-        }
+
     }
+
+    public static void main(String[] args) {
+        //define array of different values for registering asset's coefficient (2, 4, 8, 16, 32)
+        //for each such value, read the encodings from the file, and run the circuit
+
+    }
+}
