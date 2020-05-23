@@ -155,7 +155,7 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
         List<EncodingBigInt> encodingBigInts = null;
         //define array of different values for registering asset's coefficient (2, 4, 8, 16, 32)
         //for each such value, read the encodings from the file, and run the circuit
-        int[] registeringIDAssetCoefficients = {2};
+        int[] registeringIDAssetCoefficients = {2, 4, 8, 16, 32};
         int registeringIDAssetCoefficient = 0;
         ECDLBase ecdlBase = new ECDLBase(){};
         for (int i = 0; i < registeringIDAssetCoefficients.length; i++) {
@@ -190,6 +190,8 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
             circuitGenerator.generateCircuit();
             circuitGenerator.evalCircuit();
             circuitGenerator.prepFiles();
+            System.out.println("############### Results for : registering id asset coefficient = " +
+                    registeringIDAssetCoefficient + "#####################################");
             circuitGenerator.runLibsnark();
         }
     }
