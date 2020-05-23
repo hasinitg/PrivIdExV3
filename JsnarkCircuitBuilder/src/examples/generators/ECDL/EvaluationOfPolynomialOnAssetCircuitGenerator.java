@@ -109,9 +109,16 @@ public class EvaluationOfPolynomialOnAssetCircuitGenerator extends CircuitGenera
         int index = 0;
         for (int i = numberOfPowersOfIDHash; i > 1; i--) {
             BigInteger powerOfIDAsset = hashOfIDAsset.pow(i);
-            for (int j = 0; j < Constants.SECRET_BITWIDTH; j++) {
+            //due to the policy of underlying jsnark framework, the secret should have first 3 bits set to zero
+            //and last bit 1
+            evaluator.setWireValue(powersOfIDHash.get(index)[0],0);
+            evaluator.setWireValue(powersOfIDHash.get(index)[1],0);
+            evaluator.setWireValue(powersOfIDHash.get(index)[2],0);
+            for (int j = 3; j < Constants.SECRET_BITWIDTH-1; j++) {
+
                 evaluator.setWireValue(powersOfIDHash.get(index)[j], powerOfIDAsset.testBit(j) ? 1 : 0);
             }
+            evaluator.setWireValue(powersOfIDHash.get(index)[Constants.SECRET_BITWIDTH-1],1);
             index++;
         }
         for (int j = 0; j < Constants.SECRET_BITWIDTH; j++) {
