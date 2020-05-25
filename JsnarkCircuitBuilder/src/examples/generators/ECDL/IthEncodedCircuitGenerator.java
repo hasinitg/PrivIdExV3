@@ -48,7 +48,7 @@ public class IthEncodedCircuitGenerator extends CircuitGenerator implements ECDL
     @Override
     protected void buildCircuit() {
         //SHA256 gadget
-        commitmentInput = createInputWireArray(Constants.COMMITMENT_SECRET_LENGTH*2);
+        commitmentInput = createProverWitnessWireArray(Constants.COMMITMENT_SECRET_LENGTH*2);
         sha256Gadget = new SHA256Gadget(commitmentInput, 1, 64,
                 false, false, Constants.DESC_COMMITMENT_SHA_256);
 
